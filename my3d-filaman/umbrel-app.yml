@@ -6,7 +6,8 @@ version: "1.2.42-ru.3"
 tagline: Управление филаментом для 3D-печати
 description: >-
   Неофициальный Community App package для FilaMan. FilaMan разработан Fire-Devils.
-  Русская и украинская локализации основаны на официальном open-source проекте.
+  Русская и украинская локализации основаны на официальном open-source проекте
+  и поддерживаются в https://github.com/MikeFox303/filaman-system.
 developer: Fire-Devils
 website: https://www.filaman.app/
 repo: https://github.com/Fire-Devils/filaman-system

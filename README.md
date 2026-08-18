@@ -1,17 +1,23 @@
 # 3D Printing Community App Store для Umbrel
 
-Неофициальный Store для программ 3D-печати. Первый пакет — FilaMan от Fire-Devils с русской локализацией.
+Неофициальный Store для программ 3D-печати. Первый пакет — FilaMan от Fire-Devils с русской и украинской локализациями.
 
 ## Установка
 
 1. В UmbrelOS добавьте URL этого GitHub-репозитория как Community App Store.
 2. Установите FilaMan из раздела 3D Printing.
 
-Package закреплён на опубликованном SHA256 digest и намеренно не использует `latest`.
+Package закреплён на опубликованном multi-architecture SHA256 digest и намеренно не использует `latest`.
+
+## Автоматические обновления
+
+UmbrelOS проверяет зарегистрированные Community Store каждые 5 минут. Удалять и повторно добавлять этот Store не нужно. После успешной сборки ветки `main` репозитория [MikeFox303/filaman-system](https://github.com/MikeFox303/filaman-system) workflow этого Store автоматически получает immutable digest, повышает версию пакета и публикует обновление. Затем Umbrel показывает обычную кнопку обновления приложения; каталог данных и ID `my3d-filaman` не меняются.
+
+Обновления официального [Fire-Devils/filaman-system](https://github.com/Fire-Devils/filaman-system) поступают в локализованный репозиторий отдельным pull request. Проверки блокируют публикацию, если в русском или украинском словаре отсутствуют ключи либо изменены placeholders.
 
 ## Данные, обновление и backup
 
-Данные Umbrel хранятся в `${APP_DATA_DIR}/data` и не попадают в Git. Для обновления сначала создавайте backup данных. При обновлении RU fork выполните `git fetch upstream` и `git rebase upstream/main`, затем `npm run check:i18n`; новые ключи переводятся вручную.
+Данные Umbrel хранятся в `${APP_DATA_DIR}/data` и не попадают в Git. Перед крупным обновлением рекомендуется создать backup данных. Обычное обновление через Umbrel не меняет каталог данных.
 
 ## Переход с Dockge
 
