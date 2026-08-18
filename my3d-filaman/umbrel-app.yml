@@ -2,7 +2,7 @@ manifestVersion: 1.1
 id: my3d-filaman
 name: FilaMan
 category: automation
-version: "1.2.42-ru.1"
+version: "1.2.42-ru.2"
 tagline: Управление филаментом для 3D-печати
 description: >-
   Неофициальный Community App package для FilaMan. FilaMan разработан Fire-Devils.
