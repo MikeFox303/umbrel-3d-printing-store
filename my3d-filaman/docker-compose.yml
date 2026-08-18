@@ -6,8 +6,7 @@ services:
       APP_PORT: 8000
       PROXY_AUTH_ADD: "false"
   server:
-    # Replace the digest after the first successful GitHub Actions image build.
-    image: ghcr.io/mikefox303/filaman-system-ru:1.2.42-ru.1@sha256:REPLACE_WITH_PUBLISHED_DIGEST
+    image: ghcr.io/mikefox303/filaman-system-ru:1.2.42-ru.1@sha256:014d346d35bb8fac9d0b3451074599151c54ac874512b58e1d6bc9b97bcadd0d
     restart: on-failure
     init: true
     environment:

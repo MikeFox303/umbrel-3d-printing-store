@@ -4,12 +4,10 @@
 
 ## Установка
 
-1. Запустите GitHub Actions `Build RU image` в репозитории `MikeFox303/filaman-system-ru` с тегом `1.2.42-ru.1`.
-2. Получите digest: `docker buildx imagetools inspect ghcr.io/mikefox303/filaman-system-ru:1.2.42-ru.1`.
-3. Замените `REPLACE_WITH_PUBLISHED_DIGEST` в `my3d-filaman/docker-compose.yml` на полученный SHA256 digest и закоммитьте изменение.
-4. В UmbrelOS добавьте URL этого GitHub-репозитория как Community App Store и установите FilaMan.
+1. В UmbrelOS добавьте URL этого GitHub-репозитория как Community App Store.
+2. Установите FilaMan из раздела 3D Printing.
 
-Пакет нельзя устанавливать до подстановки digest. Он намеренно не использует `latest`.
+Package закреплён на опубликованном SHA256 digest и намеренно не использует `latest`.
 
 ## Данные, обновление и backup
 
