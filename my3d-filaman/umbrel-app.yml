@@ -13,6 +13,7 @@ repo: https://github.com/Fire-Devils/filaman-system
 support: https://github.com/Fire-Devils/filaman-system/issues
 icon: https://raw.githubusercontent.com/Fire-Devils/filaman-system/main/frontend/public/logo.png
 port: 8000
+gallery: []
 dependencies: []
 path: ""
 defaultUsername: "admin@example.com"
