@@ -49,6 +49,11 @@ jobs:
             exit 1
           fi
           ref="ghcr.io/mikefox303/filaman-system:${tag}"
+          raw_manifest="$(docker buildx imagetools inspect --raw "${ref}")"
+          if ! jq -e '[.manifests[].platform | "\(.os)/\(.architecture)"] | (index("linux/amd64") != null and index("linux/arm64") != null)' <<<"${raw_manifest}" >/dev/null; then
+            echo "${ref} does not contain both linux/amd64 and linux/arm64" >&2
+            exit 1
+          fi
           digest="$(docker buildx imagetools inspect "${ref}" | sed -n 's/^Digest:[[:space:]]*//p' | head -1)"
           if [[ ! "${digest}" =~ ^sha256:[0-9a-f]{64}$ ]]; then
             echo "Could not resolve a multi-architecture digest for ${ref}" >&2
