@@ -1,17 +1,33 @@
-## Umbrel Community App Store Template
+# 3D Printing Community App Store для Umbrel
 
-This repository is a template to create an Umbrel Community App Store. These additional app stores allow developers to distribute applications without submitting to the [Official Umbrel App Store](https://github.com/getumbrel/umbrel-apps).
+Неофициальный Store для программ 3D-печати. Первый пакет — FilaMan от Fire-Devils с русской локализацией.
 
-## How to use:
+## Установка
 
-1. Start by clicking the "Use this template" button located above.
-2. Assign an ID and name to your app store within the `umbrel-app-store.yml` file. This file specifies two important attributes:
-    - `id` - Acts as a unique prefix for every app within your Community App Store. You must start your application's ID with your app store's ID. For instance, in this template, the app store ID is `sparkles`, and there's an app named `hello world`. Consequently, the app's ID should be: `sparkles-hello-world`.
-    - `name` - This is the name of the Community App Store displayed in the umbrelOS UI.
-3. Change the name of the `sparkles-hello-world` folder to match your app's ID. The app ID is for you to decide. For example, if your app store ID is `whistles`, and your app is named My Video Downloader, you could set its app ID to `whistles-my-video-downloader`, and rename the folder accordingly.
-4. Next, enter your app's listing details in the `whistles-my-video-downloader/umbrel-app.yml`. These are displayed in the umbrelOS UI.
-5. Include the necessary Docker services in `whistles-my-video-downloader/docker-compose.yml`.
-6. That's it! Your Community App Store, featuring your unique app, is now set up and ready to go. To use your Community App Store, you can add its GitHub url the umbrelOS user interface as shown in the following demo:
+1. Запустите GitHub Actions `Build RU image` в репозитории `MikeFox303/filaman-system-ru` с тегом `1.2.42-ru.1`.
+2. Получите digest: `docker buildx imagetools inspect ghcr.io/mikefox303/filaman-system-ru:1.2.42-ru.1`.
+3. Замените `REPLACE_WITH_PUBLISHED_DIGEST` в `my3d-filaman/docker-compose.yml` на полученный SHA256 digest и закоммитьте изменение.
+4. В UmbrelOS добавьте URL этого GitHub-репозитория как Community App Store и установите FilaMan.
 
+Пакет нельзя устанавливать до подстановки digest. Он намеренно не использует `latest`.
 
-https://user-images.githubusercontent.com/10330103/197889452-e5cd7e96-3233-4a09-b475-94b754adc7a3.mp4
+## Данные, обновление и backup
+
+Данные Umbrel хранятся в `${APP_DATA_DIR}/data` и не попадают в Git. Для обновления сначала создавайте backup данных. При обновлении RU fork выполните `git fetch upstream` и `git rebase upstream/main`, затем `npm run check:i18n`; новые ключи переводятся вручную.
+
+## Переход с Dockge
+
+1. Убедитесь, что старая и новая версии FilaMan совместимы; безопаснее начать с той же upstream-версии `1.2.42`.
+2. На Umbrel host скопируйте `scripts/backup-dockge-filaman.sh` и запустите его после остановки старого FilaMan. Скрипт определяет фактический `/app/data` mount через `docker inspect`, создаёт tar.gz и SHA256, ничего не удаляет.
+3. Один раз установите Umbrel App, затем остановите его.
+4. Запустите `scripts/migrate-dockge-filaman.sh`. Скрипт требует существующий backup, проверяет остановку обоих контейнеров, создаёт backup непустого destination, копирует данные и ждёт `/health`.
+5. Проверьте login, русский интерфейс, катушки, API и restart. До подтверждения не удаляйте Dockge stack, Docker volume или backup archive.
+
+## Rollback
+
+1. Stop Umbrel FilaMan.
+2. Не изменяйте исходный Dockge volume.
+3. Start Dockge FilaMan.
+4. Проверьте UI и данные.
+
+Не запускайте старую версию поверх базы, которую уже обновила более новая FilaMan version: rollback всегда использует исходный, неизменённый Dockge volume.

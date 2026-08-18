@@ -1,0 +1,32 @@
+version: "3.7"
+services:
+  app_proxy:
+    environment:
+      APP_HOST: my3d-filaman_server_1
+      APP_PORT: 8000
+      PROXY_AUTH_ADD: "false"
+  server:
+    # Replace the digest after the first successful GitHub Actions image build.
+    image: ghcr.io/mikefox303/filaman-system-ru:1.2.42-ru.1@sha256:REPLACE_WITH_PUBLISHED_DIGEST
+    restart: on-failure
+    init: true
+    environment:
+      DATABASE_URL: "sqlite+aiosqlite:////app/data/filaman.db"
+      SECRET_KEY: "${APP_SEED}"
+      CSRF_SECRET_KEY: "csrf-${APP_SEED}"
+      ADMIN_EMAIL: "admin@example.com"
+      ADMIN_PASSWORD: "${APP_PASSWORD}"
+      ADMIN_DISPLAY_NAME: "Admin"
+      ADMIN_LANGUAGE: "ru"
+      ADMIN_SUPERADMIN: "true"
+      DEBUG: "false"
+      LOG_LEVEL: "INFO"
+      LOG_FORMAT: "text"
+    volumes:
+      - ${APP_DATA_DIR}/data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
