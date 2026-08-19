@@ -35,3 +35,27 @@ UmbrelOS проверяет зарегистрированные Community Store
 4. Проверьте UI и данные.
 
 Не запускайте старую версию поверх базы, которую уже обновила более новая FilaMan version: rollback всегда использует исходный, неизменённый Dockge volume.
+
+## Приложения 3D Printing
+
+```text
+3D Printing
+├── FilaMan — учёт и управление inventory филамента.
+└── Bambuddy — локальное управление, мониторинг, AMS и камера Bambu Lab.
+```
+
+## Рекомендуемая архитектура
+
+```text
+Ender-3 V3 KE
+   │
+   └── Moonraker / FilaMan
+
+Bambu Lab X2D
+   │
+   └── Bambuddy
+          │
+          └── FilaMan
+```
+
+Bambuddy — отдельный bridge-networked Umbrel package на порту 8280. Для X2D добавьте принтер вручную по LAN IP; это не меняет существующую установку FilaMan.

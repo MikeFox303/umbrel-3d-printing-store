@@ -1,4 +1,16 @@
 .DS_Store
 backups/
 *.db
+*.sqlite
+*.sqlite3
+*.bak
 *.tar.gz
+*.tar
+*.zip
+.env
+.env.*
+!.env.example
+my3d-bambuddy/data/*
+!my3d-bambuddy/data/.gitkeep
+my3d-bambuddy/logs/*
+!my3d-bambuddy/logs/.gitkeep
