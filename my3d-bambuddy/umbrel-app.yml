@@ -1,0 +1,23 @@
+manifestVersion: 1.1
+id: my3d-bambuddy
+name: Bambuddy
+category: automation
+version: "1.2.5.3"
+tagline: Локальное управление принтерами Bambu Lab
+description: >-
+  Неофициальный Community App package для Bambuddy. Bambuddy — self-hosted
+  система управления и мониторинга принтеров Bambu Lab: печать, AMS, камера,
+  архив заданий и API-интеграции в локальной сети.
+developer: maziggy
+website: https://bambuddy.cool/
+repo: https://github.com/maziggy/bambuddy
+support: https://github.com/maziggy/bambuddy/issues
+icon: https://raw.githubusercontent.com/maziggy/bambuddy/main/static/img/android-chrome-512x512.png
+port: 8280
+gallery: []
+dependencies: []
+path: ""
+torOnly: false
+releaseNotes: >-
+  Первый выпуск Bambuddy для Umbrel Community Store.
+  Данные и настройки приложения сохраняются.
