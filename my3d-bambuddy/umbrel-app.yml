@@ -19,5 +19,5 @@ dependencies: []
 path: ""
 torOnly: false
 releaseNotes: >-
-  Первый выпуск Bambuddy для Umbrel Community Store.
+  Автоматическое обновление Bambuddy до 1.2.5.3.
   Данные и настройки приложения сохраняются.
