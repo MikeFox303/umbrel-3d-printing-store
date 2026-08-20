@@ -2,7 +2,7 @@ manifestVersion: 1.1
 id: my3d-bambuddy
 name: Bambuddy
 category: automation
-version: "1.2.5.4-test.2892.1"
+version: "1.2.5.4"
 tagline: Локальное управление принтерами Bambu Lab
 description: >-
   Неофициальный Community App package для Bambuddy. Bambuddy — self-hosted
