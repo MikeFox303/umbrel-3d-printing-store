@@ -6,7 +6,7 @@ services:
       APP_PORT: 8000
       PROXY_AUTH_ADD: "false"
   server:
-    image: ghcr.io/mikefox303/filaman-system:1.2.42-localized.12@sha256:06e60f514b884ccfedc03dcecff33760bc9c54f49e18d59429874111c5c217db
+    image: ghcr.io/mikefox303/filaman-system:1.2.42-localized.14@sha256:04f35c10f4c380ba6e3e5bc813cc1e3b4a1220b2e3e6caab5831dba82d653584
     restart: on-failure
     init: true
     environment:
