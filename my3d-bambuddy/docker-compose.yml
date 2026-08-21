@@ -6,7 +6,7 @@ services:
       APP_PORT: 8000
       PROXY_AUTH_ADD: "false"
   server:
-    image: ghcr.io/mikefox303/bambuddy:1.2.5.3-test.x2d-consumption.1@sha256:bf2bae458070cb0b13b022a1c1bea7dd828d935fe5d18f57f3033746ac6c081c
+    image: ghcr.io/mikefox303/bambuddy:1.2.5.3-test.x2d-cloud.2@sha256:9b3d3b95112e6923a246cf7f7acc8ef09ffbd1164ac632fd2e243433d9cc161f
     restart: on-failure
     init: true
     environment:
