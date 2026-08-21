@@ -38,5 +38,10 @@ jobs:
           APP_PASSWORD: test-password
         run: |
           set -euo pipefail
-          docker compose -f my3d-bambuddy/docker-compose.yml config >/dev/null
-          docker compose -f my3d-filaman/docker-compose.yml config >/dev/null
+          cat >/tmp/umbrel-app-proxy.yml <<'EOF'
+          services:
+            app_proxy:
+              image: alpine:3.22
+          EOF
+          docker compose -f my3d-bambuddy/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null
+          docker compose -f my3d-filaman/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null
