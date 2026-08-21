@@ -1,0 +1,128 @@
+name: One-shot publish X2D 1.3.9
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - RELEASE_X2D_1_3_9
+
+permissions:
+  contents: write
+  packages: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Store
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up buildx for manifest verification
+        uses: docker/setup-buildx-action@v3
+
+      - name: Wait for exact FilaMan release image
+        id: image
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_SHA: f29a067f974835282e758b826acbdd7da02d2366
+        run: |
+          set -euo pipefail
+          run_number=''
+          for attempt in $(seq 1 80); do
+            runs="$(curl --fail --silent --show-error \
+              -H 'Accept: application/vnd.github+json' \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              'https://api.github.com/repos/MikeFox303/filaman-system/actions/workflows/build-image.yml/runs?branch=main&status=success&per_page=30')"
+            run_number="$(jq -r --arg sha "${TARGET_SHA}" '[.workflow_runs[] | select(.head_sha == $sha)][0].run_number // empty' <<<"${runs}")"
+            if [[ -n "${run_number}" ]]; then
+              break
+            fi
+            echo "Waiting for successful image build of ${TARGET_SHA} (attempt ${attempt}/80)..."
+            sleep 15
+          done
+          if [[ -z "${run_number}" ]]; then
+            echo "Timed out waiting for image built from ${TARGET_SHA}" >&2
+            exit 1
+          fi
+
+          version_json="$(curl --fail --silent --show-error \
+            -H 'Accept: application/vnd.github+json' \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            "https://api.github.com/repos/MikeFox303/filaman-system/contents/version.txt?ref=${TARGET_SHA}")"
+          version="$(jq -r '.content' <<<"${version_json}" | tr -d '\n' | base64 -d | tr -d '\r\n')"
+          tag="${version}-localized.${run_number}"
+          if [[ ! "${tag}" =~ ^[0-9]+\.[0-9]+\.[0-9]+-localized\.[0-9]+$ ]]; then
+            echo "Invalid release tag ${tag}" >&2
+            exit 1
+          fi
+
+          echo "${GH_TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin >/dev/null
+          ref="ghcr.io/mikefox303/filaman-system:${tag}"
+          raw_manifest="$(docker buildx imagetools inspect --raw "${ref}")"
+          platforms="$(jq -r '[.manifests[].platform | "\(.os)/\(.architecture)"] | unique | join(" ")' <<<"${raw_manifest}")"
+          jq -e '[.manifests[].platform | "\(.os)/\(.architecture)"] | (index("linux/amd64") != null and index("linux/arm64") != null)' <<<"${raw_manifest}" >/dev/null
+          digest="$(docker buildx imagetools inspect "${ref}" | sed -n 's/^Digest:[[:space:]]*//p' | head -1)"
+          if [[ ! "${digest}" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "Could not resolve immutable digest for ${ref}" >&2
+            exit 1
+          fi
+          echo "Validated ${ref}@${digest} (${platforms})"
+          echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
+          echo "digest=${digest}" >> "${GITHUB_OUTPUT}"
+
+      - name: Update FilaMan Umbrel package
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/sync-filaman-release.mjs '${{ steps.image.outputs.tag }}' '${{ steps.image.outputs.digest }}'
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('my3d-filaman/umbrel-app.yml')
+          text = path.read_text(encoding='utf-8')
+          notes = '''releaseNotes: >-
+            X2D Cloud/inventory-only release. Includes managed Bambuddy plugin 1.3.9,
+            canonical External Tray migration and duplicate cleanup, stable per-print
+            consumption identity with replay protection, safe handling when a legacy
+            event has no run ID, read-only Bambu Cloud used_g fallback for Studio/eMMC
+            prints, and RU/UK localization of driver sync actions.'''
+          text, count = re.subn(r'releaseNotes: >-[\s\S]*$', notes, text)
+          if count != 1:
+              raise SystemExit('releaseNotes block not found')
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Validate final Store state
+        shell: bash
+        env:
+          APP_DATA_DIR: /tmp/umbrel-app-data
+          APP_SEED: test-seed
+          APP_PASSWORD: test-password
+        run: |
+          set -euo pipefail
+          node --test tests/*.test.mjs
+          grep -Eq '^    image: ghcr\.io/.+@sha256:[0-9a-f]{64}$' my3d-bambuddy/docker-compose.yml
+          grep -Eq '^    image: ghcr\.io/.+@sha256:[0-9a-f]{64}$' my3d-filaman/docker-compose.yml
+          cat >/tmp/umbrel-app-proxy.yml <<'EOF'
+          services:
+            app_proxy:
+              image: alpine:3.22
+          EOF
+          docker compose -f my3d-bambuddy/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null
+          docker compose -f my3d-filaman/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null
+
+      - name: Publish and remove acceptance pin
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f TEST_PIN RELEASE_X2D_1_3_9 .github/workflows/one-shot-publish-x2d-1.3.9.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m "release: publish X2D FilaMan ${{ steps.image.outputs.tag }}"
+          git push origin HEAD:main
