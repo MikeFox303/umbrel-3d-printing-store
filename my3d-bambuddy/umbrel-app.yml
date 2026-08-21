@@ -2,7 +2,7 @@ manifestVersion: 1.1
 id: my3d-bambuddy
 name: Bambuddy
 category: automation
-version: "1.2.5.5"
+version: "1.2.5.6"
 tagline: Локальное управление принтерами Bambu Lab
 description: >-
   Неофициальный Community App package для Bambuddy. Bambuddy — self-hosted
@@ -19,6 +19,6 @@ dependencies: []
 path: ""
 torOnly: false
 releaseNotes: >-
-  Test release candidate for X2D Inventory-only integration.
-  Bambuddy: inventory-only printer assignments, stable run_event_id и spool_usage_logged metadata.
-  Real X2D acceptance test: NOT YET PERFORMED.
+  X2D Cloud integration release candidate. Adds stable run_event_id and
+  spool_usage_logged metadata for idempotent per-spool consumption while
+  inventory-only mode avoids direct material writes to the printer.

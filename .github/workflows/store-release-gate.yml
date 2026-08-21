@@ -1,0 +1,47 @@
+name: Store Release Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: store-release-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Store tests
+        run: node --test tests/*.test.mjs
+
+      - name: Require immutable image pins
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Eq '^    image: ghcr\.io/.+@sha256:[0-9a-f]{64}$' my3d-bambuddy/docker-compose.yml
+          grep -Eq '^    image: ghcr\.io/.+@sha256:[0-9a-f]{64}$' my3d-filaman/docker-compose.yml
+
+      - name: Validate Compose files
+        shell: bash
+        env:
+          APP_DATA_DIR: /tmp/umbrel-app-data
+          APP_SEED: test-seed
+          APP_PASSWORD: test-password
+        run: |
+          set -euo pipefail
+          cat >/tmp/umbrel-app-proxy.yml <<'EOF'
+          services:
+            app_proxy:
+              image: alpine:3.22
+          EOF
+          docker compose -f my3d-bambuddy/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null
+          docker compose -f my3d-filaman/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null
