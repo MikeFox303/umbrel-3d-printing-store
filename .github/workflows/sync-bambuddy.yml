@@ -1,6 +1,9 @@
 name: Sync validated Bambuddy X2D release
 
 on:
+  push:
+    branches:
+      - sync/bambuddy-x2d-1d704084
   schedule:
     - cron: '23 * * * *'
   workflow_dispatch:
