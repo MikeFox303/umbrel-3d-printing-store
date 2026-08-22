@@ -1,0 +1,74 @@
+name: Force verified FilaMan 1.3.10 sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/force-sync-filaman-1.3.10.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: force-filaman-1-3-10-sync
+  cancel-in-progress: false
+
+env:
+  EXPECTED_HEAD_SHA: c463135e3eabc9f17e809f74d692b78bfb13dc56
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Wait for exact successful FilaMan image
+        id: release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 40); do
+            run="$(curl --fail --silent --show-error \
+              -H 'Accept: application/vnd.github+json' \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              'https://api.github.com/repos/MikeFox303/filaman-system/actions/workflows/build-image.yml/runs?branch=main&status=success&per_page=1')"
+            run_number="$(jq -er '.workflow_runs[0].run_number' <<<"${run}")"
+            head_sha="$(jq -er '.workflow_runs[0].head_sha' <<<"${run}")"
+            echo "Attempt ${attempt}: latest successful image run=${run_number} head=${head_sha}"
+            if [[ "${head_sha}" == "${EXPECTED_HEAD_SHA}" ]]; then
+              upstream_version="$(curl --fail --silent --show-error "https://raw.githubusercontent.com/MikeFox303/filaman-system/${head_sha}/version.txt" | tr -d '\r\n')"
+              tag="${upstream_version}-localized.${run_number}"
+              ref="ghcr.io/mikefox303/filaman-system:${tag}"
+              raw_manifest="$(docker buildx imagetools inspect --raw "${ref}")"
+              jq -e '[.manifests[].platform | "\(.os)/\(.architecture)"] | (index("linux/amd64") != null and index("linux/arm64") != null)' <<<"${raw_manifest}" >/dev/null
+              digest="$(docker buildx imagetools inspect "${ref}" | sed -n 's/^Digest:[[:space:]]*//p' | head -1)"
+              [[ "${digest}" =~ ^sha256:[0-9a-f]{64}$ ]]
+              echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
+              echo "digest=${digest}" >> "${GITHUB_OUTPUT}"
+              echo "head_sha=${head_sha}" >> "${GITHUB_OUTPUT}"
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "Timed out waiting for an image built from ${EXPECTED_HEAD_SHA}" >&2
+          exit 1
+
+      - name: Update immutable Umbrel package reference
+        run: node scripts/sync-filaman-release.mjs '${{ steps.release.outputs.tag }}' '${{ steps.release.outputs.digest }}'
+
+      - name: Commit verified release
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo 'Store already references the verified image.'
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add my3d-filaman/docker-compose.yml my3d-filaman/umbrel-app.yml
+          git commit -m "chore: publish FilaMan ${{ steps.release.outputs.tag }} from ${{ steps.release.outputs.head_sha }}"
+          git push
