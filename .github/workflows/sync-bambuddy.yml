@@ -51,6 +51,10 @@ jobs:
           path: bambuddy-src
           fetch-depth: 0
 
+      - name: Set up Docker Buildx
+        if: steps.release.outputs.available == 'true'
+        uses: docker/setup-buildx-action@v3
+
       - name: Resolve exact image tag and multi-arch digest
         if: steps.release.outputs.available == 'true'
         id: image
@@ -84,10 +88,6 @@ jobs:
           fi
           echo "tag=${tag}" >> "$GITHUB_OUTPUT"
           echo "digest=${digest}" >> "$GITHUB_OUTPUT"
-
-      - name: Set up Docker Buildx
-        if: steps.release.outputs.available == 'true'
-        uses: docker/setup-buildx-action@v3
 
       - name: Update immutable Umbrel package reference
         if: steps.release.outputs.available == 'true'
