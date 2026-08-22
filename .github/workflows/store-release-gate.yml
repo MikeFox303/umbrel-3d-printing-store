@@ -23,12 +23,12 @@ jobs:
       - name: Run Store tests
         run: node --test tests/*.test.mjs
 
-      - name: Require immutable image pins
+      - name: Require validated immutable image pins
         shell: bash
         run: |
           set -euo pipefail
-          grep -Eq '^    image: ghcr\.io/.+@sha256:[0-9a-f]{64}$' my3d-bambuddy/docker-compose.yml
-          grep -Eq '^    image: ghcr\.io/.+@sha256:[0-9a-f]{64}$' my3d-filaman/docker-compose.yml
+          grep -Eq '^    image: ghcr\.io/mikefox303/bambuddy:.+@sha256:[0-9a-f]{64}$' my3d-bambuddy/docker-compose.yml
+          grep -Eq '^    image: ghcr\.io/mikefox303/filaman-system:.+@sha256:[0-9a-f]{64}$' my3d-filaman/docker-compose.yml
 
       - name: Validate Compose files
         shell: bash

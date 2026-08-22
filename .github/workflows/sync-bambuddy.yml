@@ -1,8 +1,8 @@
-name: Sync Bambuddy release
+name: Sync validated Bambuddy X2D release
 
 on:
   schedule:
-    - cron: '17 */6 * * *'
+    - cron: '23 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -16,59 +16,114 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-        if: hashFiles('TEST_PIN') == ''
+      - name: Checkout Store
+        uses: actions/checkout@v4
 
-      - name: Find latest stable Bambuddy release image
+      - name: Find latest successful custom Bambuddy build
         id: release
-        if: hashFiles('TEST_PIN') == ''
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          release="$(gh api 'repos/maziggy/bambuddy/releases?per_page=100' \
-            --jq '[.[] | select(.draft == false and .prerelease == false) | select(.tag_name | test("^v?[0-9]+\\.[0-9]+\\.[0-9]+(\\.[0-9]+)?$"))][0]')"
-          if [[ -z "${release}" || "${release}" == "null" ]]; then
-            echo 'No stable Bambuddy release with a supported semantic version was found.' >&2
+          response="$(curl --fail --silent --show-error \
+            -H 'Accept: application/vnd.github+json' \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            'https://api.github.com/repos/MikeFox303/bambuddy/actions/workflows/build-x2d-image.yml/runs?branch=main&status=success&per_page=1')"
+          count="$(jq -r '.total_count // 0' <<<"$response")"
+          if [[ "$count" == "0" ]]; then
+            echo 'No validated custom Bambuddy image exists yet; keeping the current immutable Store pin.'
+            echo 'available=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          run_number="$(jq -er '.workflow_runs[0].run_number' <<<"$response")"
+          head_sha="$(jq -er '.workflow_runs[0].head_sha' <<<"$response")"
+          echo "available=true" >> "$GITHUB_OUTPUT"
+          echo "run_number=${run_number}" >> "$GITHUB_OUTPUT"
+          echo "head_sha=${head_sha}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout exact validated Bambuddy source
+        if: steps.release.outputs.available == 'true'
+        uses: actions/checkout@v6
+        with:
+          repository: MikeFox303/bambuddy
+          ref: ${{ steps.release.outputs.head_sha }}
+          path: bambuddy-src
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        if: steps.release.outputs.available == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Resolve exact image tag and multi-arch digest
+        if: steps.release.outputs.available == 'true'
+        id: image
+        shell: bash
+        env:
+          RUN_NUMBER: ${{ steps.release.outputs.run_number }}
+        run: |
+          set -euo pipefail
+          cd bambuddy-src
+          git remote add upstream https://github.com/maziggy/bambuddy.git || true
+          git fetch upstream main --tags
+          base="$(git tag --merged HEAD --sort=-v:refname \
+            | sed 's/^v//' \
+            | grep -E '^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$' \
+            | head -1)"
+          if [[ -z "$base" ]]; then
+            echo 'Could not resolve a stable upstream Bambuddy base for the validated source.' >&2
             exit 1
           fi
-          tag="$(jq -er '.tag_name' <<<"${release}")"
-          version="${tag#v}"
-          ref="ghcr.io/maziggy/bambuddy:${version}"
-          raw_manifest="$(docker buildx imagetools inspect --raw "${ref}")"
-          if ! jq -e '[.manifests[].platform | "\(.os)/\(.architecture)"] | index("linux/arm64") != null' <<<"${raw_manifest}" >/dev/null; then
-            echo "${ref} does not contain linux/arm64" >&2
+          tag="${base}-x2d.${RUN_NUMBER}"
+          ref="ghcr.io/mikefox303/bambuddy:${tag}"
+          raw_manifest="$(docker buildx imagetools inspect --raw "$ref")"
+          if ! jq -e '[.manifests[].platform | "\(.os)/\(.architecture)"] | (index("linux/amd64") != null and index("linux/arm64") != null)' <<<"$raw_manifest" >/dev/null; then
+            echo "${ref} does not contain both linux/amd64 and linux/arm64" >&2
             exit 1
           fi
-          if ! jq -e '[.manifests[].platform | "\(.os)/\(.architecture)"] | index("linux/amd64") != null' <<<"${raw_manifest}" >/dev/null; then
-            echo "${ref} does not contain linux/amd64" >&2
-            exit 1
-          fi
-          digest="$(docker buildx imagetools inspect "${ref}" | sed -n 's/^Digest:[[:space:]]*//p' | head -1)"
-          if [[ ! "${digest}" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+          digest="$(docker buildx imagetools inspect "$ref" | sed -n 's/^Digest:[[:space:]]*//p' | head -1)"
+          if [[ ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
             echo "Could not resolve a multi-architecture digest for ${ref}" >&2
             exit 1
           fi
-          echo "version=${version}" >> "${GITHUB_OUTPUT}"
-          echo "digest=${digest}" >> "${GITHUB_OUTPUT}"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "digest=${digest}" >> "$GITHUB_OUTPUT"
 
       - name: Update immutable Umbrel package reference
-        if: hashFiles('TEST_PIN') == ''
-        run: node scripts/sync-bambuddy-release.mjs '${{ steps.release.outputs.version }}' '${{ steps.release.outputs.digest }}'
+        if: steps.release.outputs.available == 'true'
+        run: node scripts/sync-bambuddy-release.mjs '${{ steps.image.outputs.tag }}' '${{ steps.image.outputs.digest }}'
+
+      - name: Validate Store before publishing
+        if: steps.release.outputs.available == 'true'
+        shell: bash
+        env:
+          APP_DATA_DIR: /tmp/umbrel-app-data
+          APP_SEED: test-seed
+          APP_PASSWORD: test-password
+        run: |
+          set -euo pipefail
+          node --test tests/*.test.mjs
+          grep -Eq '^    image: ghcr\.io/mikefox303/bambuddy:.+@sha256:[0-9a-f]{64}$' my3d-bambuddy/docker-compose.yml
+          grep -Eq '^    image: ghcr\.io/mikefox303/filaman-system:.+@sha256:[0-9a-f]{64}$' my3d-filaman/docker-compose.yml
+          cat >/tmp/umbrel-app-proxy.yml <<'EOF'
+          services:
+            app_proxy:
+              image: alpine:3.22
+          EOF
+          docker compose -f my3d-bambuddy/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null
+          docker compose -f my3d-filaman/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null
 
       - name: Commit Store update when required
-        if: hashFiles('TEST_PIN') == ''
+        if: steps.release.outputs.available == 'true'
         shell: bash
         run: |
           set -euo pipefail
           if git diff --quiet; then
-            echo 'Store already references the latest stable Bambuddy image.'
+            echo 'Store already references the latest validated Bambuddy X2D image.'
             exit 0
           fi
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add my3d-bambuddy/docker-compose.yml my3d-bambuddy/umbrel-app.yml
-          git commit -m "chore: publish Bambuddy ${{ steps.release.outputs.version }}"
+          git commit -m "chore: publish Bambuddy ${{ steps.image.outputs.tag }}"
           git push

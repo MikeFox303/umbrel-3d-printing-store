@@ -1,8 +1,8 @@
-name: Sync FilaMan release
+name: Sync validated FilaMan release
 
 on:
   schedule:
-    - cron: '7,27,47 * * * *'
+    - cron: '43 * * * *'
   workflow_dispatch:
     inputs:
       tag:
@@ -21,11 +21,14 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
+      - name: Checkout Store
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
         if: hashFiles('TEST_PIN') == ''
 
-      - name: Find latest successful localized image
+      - name: Find latest successful validated image
         id: release
         if: hashFiles('TEST_PIN') == ''
         shell: bash
@@ -68,13 +71,33 @@ jobs:
         if: hashFiles('TEST_PIN') == ''
         run: node scripts/sync-filaman-release.mjs '${{ steps.release.outputs.tag }}' '${{ steps.release.outputs.digest }}'
 
+      - name: Validate Store before publishing
+        if: hashFiles('TEST_PIN') == ''
+        shell: bash
+        env:
+          APP_DATA_DIR: /tmp/umbrel-app-data
+          APP_SEED: test-seed
+          APP_PASSWORD: test-password
+        run: |
+          set -euo pipefail
+          node --test tests/*.test.mjs
+          grep -Eq '^    image: ghcr\.io/mikefox303/bambuddy:.+@sha256:[0-9a-f]{64}$' my3d-bambuddy/docker-compose.yml
+          grep -Eq '^    image: ghcr\.io/mikefox303/filaman-system:.+@sha256:[0-9a-f]{64}$' my3d-filaman/docker-compose.yml
+          cat >/tmp/umbrel-app-proxy.yml <<'EOF'
+          services:
+            app_proxy:
+              image: alpine:3.22
+          EOF
+          docker compose -f my3d-bambuddy/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null
+          docker compose -f my3d-filaman/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null
+
       - name: Commit Store update when required
         if: hashFiles('TEST_PIN') == ''
         shell: bash
         run: |
           set -euo pipefail
           if git diff --quiet; then
-            echo 'Store already references the latest successful image.'
+            echo 'Store already references the latest validated image.'
             exit 0
           fi
           git config user.name github-actions[bot]
