@@ -14,11 +14,11 @@ function withPackage(run) {
   fs.mkdirSync(appDirectory, { recursive: true });
   fs.writeFileSync(
     path.join(appDirectory, 'docker-compose.yml'),
-    'services:\n  server:\n    image: ghcr.io/maziggy/bambuddy:1.2.5.2@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n',
+    'services:\n  server:\n    image: ghcr.io/mikefox303/bambuddy:1.2.5.3-test.x2d-cloud.2@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n',
   );
   fs.writeFileSync(
     path.join(appDirectory, 'umbrel-app.yml'),
-    'version: "1.2.5.2"\nreleaseNotes: >-\n  Previous notes.\n',
+    'version: "1.2.5.6"\nreleaseNotes: >-\n  Previous notes.\n',
   );
 
   try {
@@ -36,45 +36,46 @@ function runSync(directory, ...arguments_) {
   });
 }
 
-test('updates only the Bambuddy image, version, and release notes for a stable tag', () => {
+test('updates only the validated custom Bambuddy image, version, and release notes', () => {
   withPackage((directory) => {
-    runSync(directory, '1.2.5.3', validDigest);
+    runSync(directory, '1.2.5.3-x2d.42', validDigest);
 
     const compose = fs.readFileSync(path.join(directory, 'my3d-bambuddy/docker-compose.yml'), 'utf8');
     const manifest = fs.readFileSync(path.join(directory, 'my3d-bambuddy/umbrel-app.yml'), 'utf8');
-    assert.match(compose, new RegExp(`ghcr.io/maziggy/bambuddy:1\\.2\\.5\\.3@${validDigest}`));
-    assert.match(manifest, /^version: "1\.2\.5\.3"$/m);
-    assert.match(manifest, /Автоматическое обновление Bambuddy до 1\.2\.5\.3\./);
+    assert.match(compose, new RegExp(`ghcr.io/mikefox303/bambuddy:1\\.2\\.5\\.3-x2d\\.42@${validDigest}`));
+    assert.match(manifest, /^version: "1\.2\.5\.3-x2d\.42"$/m);
+    assert.match(manifest, /Проверенная X2D-сборка Bambuddy 1\.2\.5\.3-x2d\.42\./);
+    assert.match(manifest, /inventory-only/);
   });
 });
 
-test('rejects prerelease tags before touching package files', () => {
+test('rejects official or arbitrary tags before touching package files', () => {
   withPackage((directory) => {
     assert.throws(
-      () => runSync(directory, '1.2.5.3-beta.1', validDigest),
-      /Invalid stable Bambuddy version/,
+      () => runSync(directory, '1.2.5.4', validDigest),
+      /Invalid validated Bambuddy X2D version/,
     );
 
     const compose = fs.readFileSync(path.join(directory, 'my3d-bambuddy/docker-compose.yml'), 'utf8');
-    assert.match(compose, /bambuddy:1\.2\.5\.2@sha256:a{64}/);
+    assert.match(compose, /mikefox303\/bambuddy:1\.2\.5\.3-test\.x2d-cloud\.2@sha256:a{64}/);
   });
 });
 
 test('rejects invalid digests before touching package files', () => {
   withPackage((directory) => {
     assert.throws(
-      () => runSync(directory, '1.2.5.3', 'sha256:not-a-digest'),
+      () => runSync(directory, '1.2.5.3-x2d.42', 'sha256:not-a-digest'),
       /Invalid multi-architecture digest/,
     );
   });
 });
 
-test('fails loudly when the expected Bambuddy image is absent', () => {
+test('fails loudly when the validated custom image is absent', () => {
   withPackage((directory) => {
     fs.writeFileSync(path.join(directory, 'my3d-bambuddy/docker-compose.yml'), 'services: {}\n');
     assert.throws(
-      () => runSync(directory, '1.2.5.3', validDigest),
-      /Bambuddy image reference was not found/,
+      () => runSync(directory, '1.2.5.3-x2d.42', validDigest),
+      /Validated MikeFox303 Bambuddy image reference was not found/,
     );
   });
 });
