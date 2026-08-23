@@ -1,5 +1,6 @@
 name: Check Bambuddy release pipeline (staging only)
 # refresh target: c896f6e85de57c866e15d72289b34b49c1157e0a
+# refresh: 2026-08-23T03:00:00+03:00
 
 on:
   push:
