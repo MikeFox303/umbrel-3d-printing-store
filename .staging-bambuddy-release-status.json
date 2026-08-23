@@ -1,23 +1,23 @@
 {
-  "checked_at": "2026-08-22T23:20:42Z",
+  "checked_at": "2026-08-23T00:02:45Z",
   "ci": {
     "id": 32604913027,
     "run_number": 109,
     "head_sha": "c896f6e85de57c866e15d72289b34b49c1157e0a",
-    "status": "in_progress",
-    "conclusion": null,
+    "status": "completed",
+    "conclusion": "success",
     "event": "push",
     "created_at": "2026-08-22T23:19:37Z",
-    "updated_at": "2026-08-22T23:20:35Z"
+    "updated_at": "2026-08-22T23:38:01Z"
   },
   "image": {
-    "id": 32604436620,
-    "run_number": 22,
-    "head_sha": "1d704084b8221364227f3b65273d43f6af553d00",
+    "id": 32605745994,
+    "run_number": 23,
+    "head_sha": "c896f6e85de57c866e15d72289b34b49c1157e0a",
     "status": "completed",
-    "conclusion": "skipped",
+    "conclusion": "success",
     "event": "workflow_run",
-    "created_at": "2026-08-22T23:09:14Z",
-    "updated_at": "2026-08-22T23:09:14Z"
+    "created_at": "2026-08-22T23:38:03Z",
+    "updated_at": "2026-08-22T23:52:41Z"
   }
 }
