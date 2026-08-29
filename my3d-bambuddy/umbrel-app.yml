@@ -19,5 +19,5 @@ dependencies: []
 path: ""
 torOnly: false
 releaseNotes: >-
-  Проверенная X2D-сборка Bambuddy 1.2.5.4-x2d.27.
+  Проверенная X2D-сборка Bambuddy 1.2.5.4-x2d.27 на базе Bambuddy 1.2.5.4.
   Сохранены Cloud Mode без обязательного Developer Mode, inventory-only и безопасный учёт расхода.
