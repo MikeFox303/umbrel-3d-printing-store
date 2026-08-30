@@ -48,3 +48,30 @@ jobs:
           docker compose -f my3d-filaman/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null
           docker compose -f my3d-printbuddy/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null
           docker compose -f my3d-spoolman/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null
+
+      - name: Smoke-test Spoolman startup
+        shell: bash
+        run: |
+          set -euo pipefail
+          export APP_DATA_DIR=/tmp/spoolman-smoke
+          rm -rf "$APP_DATA_DIR"
+          mkdir -p "$APP_DATA_DIR"
+
+          cleanup() {
+            docker compose --project-name spoolman-smoke -f my3d-spoolman/docker-compose.yml down -v || true
+          }
+          trap cleanup EXIT
+
+          docker compose --project-name spoolman-smoke -f my3d-spoolman/docker-compose.yml up -d server
+
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error http://127.0.0.1:7912/ >/dev/null; then
+              test -f "$APP_DATA_DIR/data/spoolman.db"
+              stat -c '%u:%g' "$APP_DATA_DIR/data" | grep -qx '1000:1000'
+              exit 0
+            fi
+            sleep 1
+          done
+
+          docker compose --project-name spoolman-smoke -f my3d-spoolman/docker-compose.yml logs server
+          exit 1
