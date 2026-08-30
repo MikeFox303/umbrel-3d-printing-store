@@ -19,7 +19,5 @@ dependencies: []
 path: ""
 torOnly: false
 releaseNotes: >-
-  Автоматически опубликован образ X2D fork для стабильной upstream-версии
-  Bambuddy 1.2.5.5. Fork build: 71. Исходники:
-  MikeFox303/bambuddy@1392f99c8229caf3c1f04e3986d6a90f171811d1.
-  Образ закреплён по immutable digest.
+  Проверенная X2D-сборка Bambuddy 1.2.5.5-x2d.71.
+  Сохранены Cloud Mode без обязательного Developer Mode, inventory-only и безопасный учёт расхода.
