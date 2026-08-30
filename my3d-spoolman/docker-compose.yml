@@ -7,6 +7,17 @@ services:
     init: true
     stop_grace_period: 30s
 
+    # Docker creates a missing bind-mount source as root. Spoolman drops to
+    # UID/GID 1000 before opening SQLite, so normalize the Umbrel data folder
+    # before handing control back to the upstream entrypoint.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        mkdir -p /home/app/.local/share/spoolman
+        chown -R 1000:1000 /home/app/.local/share/spoolman
+        exec /home/app/spoolman/entrypoint.sh
+
     environment:
       TZ: Europe/Kyiv
       PUID: "1000"
