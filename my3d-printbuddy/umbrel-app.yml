@@ -1,0 +1,26 @@
+manifestVersion: 1.1
+id: my3d-printbuddy
+name: Printbuddy
+category: automation
+version: "0.2.5.1-umbrel.1"
+tagline: Единая панель управления 3D-принтерами
+description: >-
+  Неофициальный Community App package для Printbuddy — self-hosted платформы
+  мониторинга и управления парком 3D-принтеров. Поддерживаются Bambu Lab,
+  Klipper/Moonraker, Prusa и другие провайдеры; доступны мониторинг, файлы,
+  очередь, архив печатей, инвентарь филамента, AMS и Virtual Printer.
+developer: VMHOMELAB
+website: https://wiki.printbuddy.tech/
+repo: https://github.com/vmhomelab/printbuddy
+support: https://github.com/vmhomelab/printbuddy/issues
+icon: https://raw.githubusercontent.com/vmhomelab/printbuddy/main/static/img/android-chrome-512x512.png
+port: 8281
+gallery: []
+dependencies: []
+path: ""
+torOnly: false
+releaseNotes: >-
+  Первый UmbrelOS-пакет Printbuddy. Используется стабильный upstream-релиз
+  v0.2.5.1 с multi-architecture Docker image для amd64/arm64. Включён host
+  networking для локального обнаружения принтеров, камер и Virtual Printer;
+  данные и логи сохраняются в каталоге приложения Umbrel.
