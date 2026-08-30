@@ -1,0 +1,28 @@
+version: "3.7"
+
+services:
+  server:
+    image: docker.io/vmhomelabde/printbuddy:v0.2.5.1
+    restart: on-failure
+    init: true
+    stop_grace_period: 30s
+
+    # Printbuddy recommends host networking on Linux so LAN discovery,
+    # Bambu MQTT/FTPS/cameras and Virtual Printer traffic do not cross NAT.
+    network_mode: host
+
+    # Required when Virtual Printer needs privileged FTPS/RTSPS ports (990/322)
+    # while the application itself runs as the configured non-root user.
+    cap_add:
+      - NET_BIND_SERVICE
+
+    environment:
+      TZ: Europe/Kyiv
+      PUID: "1000"
+      PGID: "1000"
+      # Dedicated Umbrel port. 8000 is already used by FilaMan and 8280 by Bambuddy.
+      PORT: "8281"
+
+    volumes:
+      - ${APP_DATA_DIR}/data:/app/data
+      - ${APP_DATA_DIR}/logs:/app/logs
