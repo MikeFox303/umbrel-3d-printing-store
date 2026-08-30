@@ -1,13 +1,13 @@
 # 3D Printing Community App Store для Umbrel
 
-Неофициальный Store для программ 3D-печати. Первый пакет — FilaMan от Fire-Devils с русской и украинской локализациями.
+Неофициальный Store для self-hosted программ 3D-печати: FilaMan, Bambuddy и Printbuddy.
 
 ## Установка
 
 1. В UmbrelOS добавьте URL этого GitHub-репозитория как Community App Store.
-2. Установите FilaMan из раздела 3D Printing.
+2. Выберите нужное приложение в каталоге и установите его обычным способом через Umbrel.
 
-Package закреплён на опубликованном multi-architecture SHA256 digest и намеренно не использует `latest`.
+Для собственных сборок FilaMan и Bambuddy package закрепляется на опубликованном multi-architecture SHA256 digest и намеренно не использует `latest`. Printbuddy также использует конкретный стабильный upstream release tag, а не `latest`.
 
 ## Автоматические обновления
 
@@ -41,21 +41,26 @@ UmbrelOS проверяет зарегистрированные Community Store
 ```text
 3D Printing
 ├── FilaMan — учёт и управление inventory филамента.
-└── Bambuddy — локальное управление, мониторинг, AMS и камера Bambu Lab.
+├── Bambuddy — локальное управление, мониторинг, AMS и камера Bambu Lab.
+└── Printbuddy — единая multi-vendor панель для Bambu Lab, Klipper/Moonraker и других принтеров.
 ```
 
 ## Рекомендуемая архитектура
 
 ```text
-Ender-3 V3 KE
-   │
-   └── Moonraker / FilaMan
+                         ┌── Bambu Lab / AMS
+                         │
+UmbrelOS ── Printbuddy ──┼── Klipper / Moonraker
+                         │
+                         └── другие поддерживаемые providers
 
-Bambu Lab X2D
-   │
-   └── Bambuddy
-          │
-          └── FilaMan
+Альтернативно:
+
+Bambu Lab ── Bambuddy ── FilaMan
+
+Klipper / Moonraker ── FilaMan
 ```
 
-Bambuddy — отдельный bridge-networked Umbrel package на порту 8280. Для X2D добавьте принтер вручную по LAN IP; это не меняет существующую установку FilaMan.
+Bambuddy — отдельный bridge-networked Umbrel package на порту `8280`.
+
+Printbuddy — отдельный host-networked Umbrel package на порту `8281`. Host networking соответствует upstream-рекомендации для Linux и позволяет LAN discovery, Bambu MQTT/FTPS/camera и Virtual Printer работать без Docker NAT. Обычная установка Printbuddy может работать параллельно с Bambuddy и FilaMan; одновременно включать несколько Virtual Printer/proxy-сервисов на одинаковых host-портах не следует.
