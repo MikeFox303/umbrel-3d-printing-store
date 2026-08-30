@@ -2,7 +2,7 @@ manifestVersion: 1.1
 id: my3d-spoolman
 name: Spoolman
 category: automation
-version: "0.26.1-umbrel.1"
+version: "0.26.1-umbrel.2"
 tagline: Централизованный учёт катушек филамента
 description: >-
   Неофициальный Community App package для Spoolman — self-hosted базы
@@ -24,7 +24,7 @@ dependencies: []
 path: ""
 torOnly: false
 releaseNotes: >-
-  Первый UmbrelOS-пакет Spoolman. Используется стабильный upstream-релиз
-  v0.26.1 и закреплённый multi-architecture GHCR image для amd64/arm64.
-  SQLite-база, логи, кэш и автоматические резервные копии сохраняются в
-  каталоге данных приложения Umbrel. Web UI доступен на порту 7912.
+  Исправлен первый запуск в UmbrelOS: каталог persistent data теперь
+  автоматически получает UID/GID 1000 перед запуском Spoolman, поэтому SQLite
+  может создать spoolman.db даже если bind-mount был создан Docker от root.
+  Upstream остаётся v0.26.1, Web UI — порт 7912.
