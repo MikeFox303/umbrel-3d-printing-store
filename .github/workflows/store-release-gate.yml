@@ -29,6 +29,7 @@ jobs:
           set -euo pipefail
           grep -Eq '^    image: ghcr\.io/mikefox303/bambuddy:.+@sha256:[0-9a-f]{64}$' my3d-bambuddy/docker-compose.yml
           grep -Eq '^    image: ghcr\.io/mikefox303/filaman-system:.+@sha256:[0-9a-f]{64}$' my3d-filaman/docker-compose.yml
+          grep -Eq '^    image: ghcr\.io/donkie/spoolman:0\.26\.1@sha256:[0-9a-f]{64}$' my3d-spoolman/docker-compose.yml
 
       - name: Validate Compose files
         shell: bash
@@ -45,3 +46,5 @@ jobs:
           EOF
           docker compose -f my3d-bambuddy/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null
           docker compose -f my3d-filaman/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null
+          docker compose -f my3d-printbuddy/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null
+          docker compose -f my3d-spoolman/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null

@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  server:
+    image: ghcr.io/donkie/spoolman:0.26.1@sha256:cf9b41e17b93ce7d4ca584d9809142f8918fd290f2cd7d3b8b12ff76c75482f0
+    restart: on-failure
+    init: true
+    stop_grace_period: 30s
+
+    environment:
+      TZ: Europe/Kyiv
+      PUID: "1000"
+      PGID: "1000"
+
+    ports:
+      - "7912:8000"
+
+    volumes:
+      - ${APP_DATA_DIR}/data:/home/app/.local/share/spoolman

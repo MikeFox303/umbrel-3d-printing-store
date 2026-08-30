@@ -1,13 +1,13 @@
 # 3D Printing Community App Store для Umbrel
 
-Неофициальный Store для self-hosted программ 3D-печати: FilaMan, Bambuddy и Printbuddy.
+Неофициальный Store для self-hosted программ 3D-печати: FilaMan, Bambuddy, Printbuddy и Spoolman.
 
 ## Установка
 
 1. В UmbrelOS добавьте URL этого GitHub-репозитория как Community App Store.
 2. Выберите нужное приложение в каталоге и установите его обычным способом через Umbrel.
 
-Для собственных сборок FilaMan и Bambuddy package закрепляется на опубликованном multi-architecture SHA256 digest и намеренно не использует `latest`. Printbuddy также использует конкретный стабильный upstream release tag, а не `latest`.
+Для собственных сборок FilaMan и Bambuddy package закрепляется на опубликованном multi-architecture SHA256 digest и намеренно не использует `latest`. Printbuddy использует конкретный стабильный upstream release tag, а Spoolman — конкретный стабильный release tag с закреплённым multi-architecture digest.
 
 ## Автоматические обновления
 
@@ -42,7 +42,8 @@ UmbrelOS проверяет зарегистрированные Community Store
 3D Printing
 ├── FilaMan — учёт и управление inventory филамента.
 ├── Bambuddy — локальное управление, мониторинг, AMS и камера Bambu Lab.
-└── Printbuddy — единая multi-vendor панель для Bambu Lab, Klipper/Moonraker и других принтеров.
+├── Printbuddy — единая multi-vendor панель для Bambu Lab, Klipper/Moonraker и других принтеров.
+└── Spoolman — центральная база катушек, остатков, стоимости и истории расхода.
 ```
 
 ## Рекомендуемая архитектура
@@ -53,14 +54,25 @@ UmbrelOS проверяет зарегистрированные Community Store
 UmbrelOS ── Printbuddy ──┼── Klipper / Moonraker
                          │
                          └── другие поддерживаемые providers
+             │
+             └──────── Spoolman
+                       └── единая база катушек и расхода
+```
+
+Для Klipper/Moonraker Spoolman можно подключить напрямую:
+
+```text
+Ender / Klipper ── Moonraker ── Spoolman
+```
 
 Альтернативно:
 
-Bambu Lab ── Bambuddy ── FilaMan
-
-Klipper / Moonraker ── FilaMan
+```text
+Bambu Lab ── Bambuddy ── Spoolman
 ```
 
 Bambuddy — отдельный bridge-networked Umbrel package на порту `8280`.
 
-Printbuddy — отдельный host-networked Umbrel package на порту `8281`. Host networking соответствует upstream-рекомендации для Linux и позволяет LAN discovery, Bambu MQTT/FTPS/camera и Virtual Printer работать без Docker NAT. Обычная установка Printbuddy может работать параллельно с Bambuddy и FilaMan; одновременно включать несколько Virtual Printer/proxy-сервисов на одинаковых host-портах не следует.
+Printbuddy — отдельный host-networked Umbrel package на порту `8281`. Host networking соответствует upstream-рекомендации для Linux и позволяет LAN discovery, Bambu MQTT/FTPS/camera и Virtual Printer работать без Docker NAT. Обычная установка Printbuddy может работать параллельно с Bambuddy, FilaMan и Spoolman; одновременно включать несколько Virtual Printer/proxy-сервисов на одинаковых host-портах не следует.
+
+Spoolman — отдельный bridge-networked Umbrel package на порту `7912`. SQLite-база, логи, кэш и автоматические backup-файлы сохраняются в `${APP_DATA_DIR}/data`. Spoolman не имеет собственной авторизации, поэтому порт не следует пробрасывать напрямую в интернет.

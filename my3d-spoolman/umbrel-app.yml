@@ -1,0 +1,30 @@
+manifestVersion: 1.1
+id: my3d-spoolman
+name: Spoolman
+category: automation
+version: "0.26.1-umbrel.1"
+tagline: Централизованный учёт катушек филамента
+description: >-
+  Неофициальный Community App package для Spoolman — self-hosted базы
+  катушек и филаментов для 3D-печати. Spoolman хранит производителей,
+  материалы, цвета, остатки, стоимость и места хранения, поддерживает QR-
+  метки и интегрируется с Moonraker/Klipper, OctoPrint и другими клиентами
+  через REST API и WebSocket.
+developer: Donkie
+website: https://github.com/Donkie/Spoolman/wiki
+repo: https://github.com/Donkie/Spoolman
+support: https://github.com/Donkie/Spoolman/issues
+icon: https://github.com/Donkie/Spoolman/assets/2332094/3c120b3a-1422-42f6-a16b-8d5a07c33000
+port: 7912
+gallery:
+  - https://raw.githubusercontent.com/Donkie/Spoolman/v0.26.1/.github/media/client-screenshot.png
+  - https://raw.githubusercontent.com/Donkie/Spoolman/v0.26.1/.github/media/dashboard-screenshot.png
+  - https://raw.githubusercontent.com/Donkie/Spoolman/v0.26.1/.github/media/label-designer-screenshot.png
+dependencies: []
+path: ""
+torOnly: false
+releaseNotes: >-
+  Первый UmbrelOS-пакет Spoolman. Используется стабильный upstream-релиз
+  v0.26.1 и закреплённый multi-architecture GHCR image для amd64/arm64.
+  SQLite-база, логи, кэш и автоматические резервные копии сохраняются в
+  каталоге данных приложения Umbrel. Web UI доступен на порту 7912.
