@@ -30,6 +30,12 @@ CONTAINER_NAME = os.environ.get("BAMBUDDY_CONTAINER_NAME", "my3d-bambuddy_server
 HEALTH_URL = os.environ.get("BAMBUDDY_HEALTH_URL", "http://host.docker.internal:8000/health")
 ALLOW_SWITCHING = os.environ.get("ALLOW_SWITCHING", "true").lower() == "true"
 IMAGE_RE = re.compile(r"ghcr\.io/maziggy/bambuddy:[^@\s]+@sha256:[0-9a-f]{64}")
+STABLE_IMAGE_RE = re.compile(
+    r"ghcr\.io/maziggy/bambuddy:[0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+)?@sha256:[0-9a-f]{64}"
+)
+BETA_IMAGE_RE = re.compile(
+    r"ghcr\.io/maziggy/bambuddy:daily@sha256:[0-9a-f]{64}"
+)
 LOCK = threading.Lock()
 
 MANAGER_DATA.mkdir(parents=True, exist_ok=True)
@@ -161,10 +167,13 @@ def create_clone(previous, image):
         "Cmd": config.get("Cmd"),
         "Image": image,
         "Volumes": config.get("Volumes"),
+        "ExposedPorts": config.get("ExposedPorts"),
+        "Healthcheck": config.get("Healthcheck"),
         "WorkingDir": config.get("WorkingDir", ""),
         "Entrypoint": config.get("Entrypoint"),
         "Labels": config.get("Labels") or {},
         "StopSignal": config.get("StopSignal"),
+        "StopTimeout": config.get("StopTimeout"),
         "HostConfig": host_config,
     }
     docker_request(
@@ -250,6 +259,13 @@ def channel_for_image(image, channels):
     for name, meta in channels.items():
         if meta.get("immutableImage") == image:
             return name
+    # Channel metadata always points at the newest approved digest. A machine
+    # can legitimately still be running an older approved Stable or Daily
+    # digest, so infer the channel from the immutable reference shape too.
+    if STABLE_IMAGE_RE.fullmatch(image):
+        return "stable"
+    if BETA_IMAGE_RE.fullmatch(image):
+        return "beta"
     return "custom"
 
 
