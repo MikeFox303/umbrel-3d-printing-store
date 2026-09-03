@@ -19,6 +19,7 @@ services:
       BAMBUDDY_CONTAINER_NAME: my3d-bambuddy_server_1
       BAMBUDDY_HEALTH_URL: http://host.docker.internal:8000/health
       MANAGER_DATA_DIR: /manager-data
+      MAX_SNAPSHOTS: "12"
       ALLOW_SWITCHING: "true"
     command: ["python", "/app/server.py"]
     extra_hosts:
