@@ -23,13 +23,43 @@ jobs:
       - name: Run Store tests
         run: node --test tests/*.test.mjs
 
-      - name: Require validated immutable image pins
+      - name: Validate migration script syntax
         shell: bash
         run: |
           set -euo pipefail
-          grep -Eq '^    image: ghcr\.io/mikefox303/bambuddy:.+@sha256:[0-9a-f]{64}$' my3d-bambuddy/docker-compose.yml
+          bash -n scripts/bambuddy-shadow-preflight.sh
+          bash -n scripts/bambuddy-live-rc.sh
+          bash -n scripts/bambuddy-live-verify.sh
+          bash -n scripts/bambuddy-restart-persistence.sh
+          bash -n scripts/bambuddy-single-petg-accounting.sh
+          bash -n tests/bambuddy-live-rc-mock.sh
+          grep -Fq '1.2.5.5-x2d.73@sha256:9abf0d5bfb612dd1f473a7632f2b7aa404ef06db759e979b388bd7466cc84fb0' scripts/bambuddy-shadow-preflight.sh
+          grep -Fq '1.2.5.5-x2d.73@sha256:9abf0d5bfb612dd1f473a7632f2b7aa404ef06db759e979b388bd7466cc84fb0' scripts/bambuddy-live-rc.sh
+          grep -Fq 'network_mode: host' scripts/bambuddy-live-rc.sh
+          grep -Fq 'apps.restart.mutate --appId' scripts/bambuddy-restart-persistence.sh
+          grep -Fq '/printers/' scripts/bambuddy-restart-persistence.sh
+          grep -Fq 'SINGLE_PETG_ACCOUNTING=PASS' scripts/bambuddy-single-petg-accounting.sh
+          grep -Fq '/api/v1/spool/' scripts/bambuddy-single-petg-accounting.sh
+          grep -Fq 'queue_item_id' scripts/bambuddy-single-petg-accounting.sh
+          test "$(grep -Fc 'docker exec -i "$SERVER" python -' scripts/bambuddy-live-rc.sh)" -ge 2
+
+      - name: Test live RC success and automatic rollback
+        shell: bash
+        run: bash tests/bambuddy-live-rc-mock.sh
+
+      - name: Require validated immutable image pins and Virtual Printer host network
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Eq '^    image: ghcr\.io/maziggy/bambuddy:[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?@sha256:[0-9a-f]{64}$' my3d-bambuddy/docker-compose.yml
           grep -Eq '^    image: ghcr\.io/mikefox303/filaman-system:.+@sha256:[0-9a-f]{64}$' my3d-filaman/docker-compose.yml
           grep -Eq '^    image: ghcr\.io/donkie/spoolman:0\.26\.1@sha256:[0-9a-f]{64}$' my3d-spoolman/docker-compose.yml
+          grep -Eq '^[[:space:]]*network_mode:[[:space:]]*host([[:space:]]|$)' my3d-bambuddy/docker-compose.yml
+          grep -Eq '^[[:space:]]*APP_HOST:[[:space:]]*192\.168\.0\.100([[:space:]]|$)' my3d-bambuddy/docker-compose.yml
+          grep -Eq '^[[:space:]]*VIRTUAL_PRINTER_ADVERTISE_ADDRESS:[[:space:]]*192\.168\.0\.100([[:space:]]|$)' my3d-bambuddy/docker-compose.yml
+          grep -Eq '^[[:space:]]*VIRTUAL_PRINTER_PASV_ADDRESS:[[:space:]]*192\.168\.0\.100([[:space:]]|$)' my3d-bambuddy/docker-compose.yml
+          grep -Eq '^[[:space:]]*-[[:space:]]*NET_BIND_SERVICE([[:space:]]|$)' my3d-bambuddy/docker-compose.yml
+          ! grep -Eq 'ghcr\.io/mikefox303/bambuddy|:latest(@|$)|:daily(@|$)' my3d-bambuddy/docker-compose.yml
 
       - name: Validate Compose files
         shell: bash
@@ -74,4 +104,65 @@ jobs:
           done
 
           docker compose --project-name spoolman-smoke -f my3d-spoolman/docker-compose.yml logs server
+          exit 1
+
+  bambuddy-image:
+    name: Bambuddy ${{ matrix.platform }} runtime
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [linux/amd64, linux/arm64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Anonymous pull and runtime smoke test
+        shell: bash
+        env:
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          set -euo pipefail
+          image="$(sed -n 's/^[[:space:]]*image:[[:space:]]*//p' my3d-bambuddy/docker-compose.yml | head -1)"
+          test -n "$image"
+          docker pull --platform "$PLATFORM" "$image"
+
+          root="/tmp/bambuddy-${PLATFORM##*/}"
+          rm -rf "$root"
+          mkdir -p "$root/data" "$root/logs"
+
+          cleanup() {
+            docker rm -f bambuddy-runtime >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          docker run --platform "$PLATFORM" -d \
+            --name bambuddy-runtime \
+            -p 127.0.0.1:18000:8000 \
+            -e TZ=UTC \
+            -e PUID=1000 \
+            -e PGID=1000 \
+            -e PORT=8000 \
+            -v "$root/data:/app/data" \
+            -v "$root/logs:/app/logs" \
+            "$image"
+
+          for attempt in $(seq 1 120); do
+            if curl --fail --silent --show-error http://127.0.0.1:18000/health >/dev/null; then
+              docker inspect --format '{{.State.Running}}' bambuddy-runtime | grep -qx true
+              test -f "$root/data/bambuddy.db"
+              stat -c '%u:%g' "$root/data" | grep -qx '1000:1000'
+              exit 0
+            fi
+            if [[ "$(docker inspect --format '{{.State.Running}}' bambuddy-runtime)" != true ]]; then
+              break
+            fi
+            sleep 1
+          done
+
+          docker logs bambuddy-runtime
+          docker inspect bambuddy-runtime
           exit 1
