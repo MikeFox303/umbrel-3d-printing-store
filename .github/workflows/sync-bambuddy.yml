@@ -1,4 +1,4 @@
-name: Check official Bambuddy stable
+name: Check Bambuddy pin and upstream stable
 
 on:
   schedule:
@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: check-official-bambuddy-stable
+  group: check-bambuddy-pin
   cancel-in-progress: true
 
 jobs:
@@ -19,17 +19,19 @@ jobs:
       - name: Checkout Store
         uses: actions/checkout@v4
 
-      - name: Read pinned official image
+      - name: Read pinned Bambuddy image
         id: pinned
         shell: bash
         run: |
           set -euo pipefail
-          line="$(grep -E '^    image: ghcr\.io/maziggy/bambuddy:[^@[:space:]]+@sha256:[0-9a-f]{64}$' my3d-bambuddy/docker-compose.yml)"
+          line="$(grep -E '^    image: ghcr\.io/(maziggy|mikefox303)/bambuddy:[^@[:space:]]+@sha256:[0-9a-f]{64}$' my3d-bambuddy/docker-compose.yml)"
           ref="${line#*image: }"
-          tag="${ref#ghcr.io/maziggy/bambuddy:}"
+          repository="${ref%%:*}"
+          tag="${ref#*:}"
           tag="${tag%@sha256:*}"
           digest="sha256:${ref##*@sha256:}"
           echo "ref=${ref}" >> "$GITHUB_OUTPUT"
+          echo "repository=${repository}" >> "$GITHUB_OUTPUT"
           echo "tag=${tag}" >> "$GITHUB_OUTPUT"
           echo "digest=${digest}" >> "$GITHUB_OUTPUT"
 
@@ -49,7 +51,7 @@ jobs:
           fi
           echo "version=${version}" >> "$GITHUB_OUTPUT"
 
-      - name: Inspect immutable official image
+      - name: Inspect immutable pinned image
         shell: bash
         env:
           IMAGE_REF: ${{ steps.pinned.outputs.ref }}
@@ -60,19 +62,22 @@ jobs:
           resolved="$(docker buildx imagetools inspect "$IMAGE_REF" | sed -n 's/^Digest:[[:space:]]*//p' | head -1)"
           test "$resolved" = '${{ steps.pinned.outputs.digest }}'
 
-      - name: Report newer stable without publishing it
+      - name: Report migration or newer stable without publishing
         shell: bash
         run: |
           set -euo pipefail
-          if [[ '${{ steps.upstream.outputs.version }}' != '${{ steps.pinned.outputs.tag }}' ]]; then
-            echo '::warning title=New Bambuddy stable available::Upstream stable is ${{ steps.upstream.outputs.version }}; Store remains pinned to ${{ steps.pinned.outputs.tag }} until a new migration/acceptance PR passes all gates.'
+          if [[ '${{ steps.pinned.outputs.repository }}' == 'ghcr.io/maziggy/bambuddy' ]]; then
+            if [[ '${{ steps.upstream.outputs.version }}' != '${{ steps.pinned.outputs.tag }}' ]]; then
+              echo '::warning title=New Bambuddy stable available::Upstream stable is ${{ steps.upstream.outputs.version }}; Store remains pinned to ${{ steps.pinned.outputs.tag }} until a new acceptance PR passes all gates.'
+            else
+              echo 'Store already pins the current upstream stable release.'
+            fi
           else
-            echo 'Store already pins the current upstream stable release.'
+            echo '::notice title=Legacy Bambuddy pin frozen::The Store still references the validated rollback fork image. Automatic publishing is disabled while the official-upstream migration is under acceptance.'
           fi
 
       - name: Assert workflow cannot publish
         shell: bash
         run: |
           set -euo pipefail
-          test '${{ github.event_name }}' = 'schedule' -o '${{ github.event_name }}' = 'workflow_dispatch'
-          echo 'This workflow has contents:read only and never commits or pushes to main.'
+          echo 'This workflow has contents:read only and contains no commit or push step.'
