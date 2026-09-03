@@ -109,7 +109,7 @@ def get(path):
         raise
 
 
-printers = get("/printers")
+printers = get("/printers/")
 if isinstance(printers, dict):
     for key in ("items", "printers", "data"):
         if isinstance(printers.get(key), list):
