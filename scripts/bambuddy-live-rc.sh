@@ -136,6 +136,57 @@ if failed:
 PY
 }
 
+check_not_printing() {
+  # Best-effort guard using the same local Bambuddy API the UI uses. If auth or
+  # an API-shape change prevents a reliable determination, fail closed instead
+  # of restarting Bambuddy while the X2D might be printing.
+  docker exec "$SERVER" python - <<'PY'
+import json
+import urllib.request
+
+ACTIVE = {"RUNNING", "PAUSE", "PREPARE", "SLICING"}
+base = "http://127.0.0.1:8000/api/v1"
+
+try:
+    with urllib.request.urlopen(base + "/printers", timeout=4) as r:
+        printers = json.load(r)
+except Exception as exc:
+    raise SystemExit(f"cannot verify printer idle state: {type(exc).__name__}: {exc}")
+
+if isinstance(printers, dict):
+    for key in ("items", "printers", "data"):
+        if isinstance(printers.get(key), list):
+            printers = printers[key]
+            break
+
+if not isinstance(printers, list) or not printers:
+    raise SystemExit("cannot verify printer idle state: printer list unavailable")
+
+checked = 0
+for p in printers:
+    pid = p.get("id") if isinstance(p, dict) else None
+    if pid is None:
+        continue
+    try:
+        with urllib.request.urlopen(f"{base}/printers/{pid}/status", timeout=4) as r:
+            status = json.load(r)
+    except Exception as exc:
+        raise SystemExit(f"cannot verify printer {pid} idle state: {type(exc).__name__}: {exc}")
+    state = str(status.get("state") or "").upper()
+    name = p.get("name") or p.get("serial_number") or f"id={pid}"
+    print(f"Printer {name}: state={state or 'UNKNOWN'}")
+    if state in ACTIVE:
+        raise SystemExit(f"migration blocked: printer {name} is active ({state})")
+    if not state:
+        raise SystemExit(f"cannot verify printer {name} idle state: empty state")
+    checked += 1
+
+if checked == 0:
+    raise SystemExit("cannot verify printer idle state: no printer status checked")
+print("Printer idle-state guard: PASS")
+PY
+}
+
 rollback() {
   local reason="$1"
   trap - ERR INT TERM
@@ -203,6 +254,7 @@ verify_compose_invariants || { echo 'ERROR: current compose does not preserve re
 docker exec "$SERVER" python -c 'import urllib.request; urllib.request.urlopen("http://127.0.0.1:8000/health", timeout=3)' >/dev/null
 
 echo 'Current health: PASS'
+check_not_printing
 
 echo
 echo '=========================================='
@@ -272,7 +324,7 @@ echo ' VERIFY LIVE RC'
 echo '=========================================='
 
 LIVE_IMAGE="$(docker inspect "$SERVER" --format '{{.Config.Image}}')"
-LIVE_NETWORK="$(docker inspect "$SERVER" --format '{{.HostConfig.NetworkMode}}')"
+LIVE_NETWORK="$(docker.inspect "$SERVER" --format '{{.HostConfig.NetworkMode}}')"
 
 echo "Image:   $LIVE_IMAGE"
 echo "Network: $LIVE_NETWORK"
