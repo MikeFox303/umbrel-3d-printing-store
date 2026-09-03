@@ -324,7 +324,7 @@ echo ' VERIFY LIVE RC'
 echo '=========================================='
 
 LIVE_IMAGE="$(docker inspect "$SERVER" --format '{{.Config.Image}}')"
-LIVE_NETWORK="$(docker.inspect "$SERVER" --format '{{.HostConfig.NetworkMode}}')"
+LIVE_NETWORK="$(docker inspect "$SERVER" --format '{{.HostConfig.NetworkMode}}')"
 
 echo "Image:   $LIVE_IMAGE"
 echo "Network: $LIVE_NETWORK"
