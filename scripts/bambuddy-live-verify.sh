@@ -142,23 +142,45 @@ print(f"Progress: {status.get('progress')}")
 print(f"AMS exists: {status.get('ams_exists')}")
 ams = status.get("ams") or []
 print(f"AMS units: {len(ams)}")
+regular_ams_trays = 0
 for unit in ams:
     if not isinstance(unit, dict):
         continue
-    trays = unit.get("trays") or []
-    print(f"  AMS id={unit.get('id')} humidity={unit.get('humidity')} trays={len(trays)}")
+    # Official v1.2.5.5 schema uses singular `tray`, not `trays`.
+    trays = unit.get("tray") or []
+    is_ht = bool(unit.get("is_ams_ht"))
+    if not is_ht:
+        regular_ams_trays += len(trays)
+    print(
+        f"  AMS id={unit.get('id')} humidity={unit.get('humidity')} "
+        f"temp={unit.get('temp')} is_ams_ht={is_ht} trays={len(trays)}"
+    )
     for tray in trays:
         if isinstance(tray, dict):
             print(
                 "    tray="
                 f"{tray.get('id')} type={tray.get('tray_type')} "
-                f"color={tray.get('tray_color')} remain={tray.get('remain')}"
+                f"color={tray.get('tray_color')} remain={tray.get('remain')} "
+                f"exists={tray.get('exists')}"
             )
+
+vt_trays = status.get("vt_tray") or []
+print(f"Virtual/external trays: {len(vt_trays)}")
+for tray in vt_trays:
+    if isinstance(tray, dict):
+        print(
+            "  vt_tray="
+            f"{tray.get('id')} type={tray.get('tray_type')} "
+            f"color={tray.get('tray_color')} remain={tray.get('remain')} "
+            f"exists={tray.get('exists')}"
+        )
 
 if not status.get("connected"):
     raise SystemExit("X2D is not connected in Bambuddy")
 if not status.get("ams_exists") or not ams:
     raise SystemExit("AMS 2 Pro telemetry is missing")
+if regular_ams_trays < 4:
+    raise SystemExit(f"AMS 2 Pro tray telemetry incomplete: expected at least 4 tray records, got {regular_ams_trays}")
 
 spoolman = get("/spoolman/status")
 print(
