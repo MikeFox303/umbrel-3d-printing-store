@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {spawnSync} from 'node:child_process';
 import fs from 'node:fs';
 import test from 'node:test';
 
@@ -44,6 +45,39 @@ test('Manager has a path fallback for Bambuddy packages installed before depende
   assert.match(managerExports, /APP_BAMBUDDY_DATA_DIR="\$\{APP_BAMBUDDY_APP_DIR\}\/data"/);
   assert.doesNotMatch(managerExports, /\/home\/umbrel\/umbrel/);
   assert.doesNotMatch(managerExports, /\/state\/default\/persist/);
+
+  const legacy = spawnSync(
+    'bash',
+    ['-c', 'source my3d-bambuddy-manager/exports.sh; printf "%s\\n%s\\n" "$APP_BAMBUDDY_APP_DIR" "$APP_BAMBUDDY_DATA_DIR"'],
+    {
+      encoding: 'utf8',
+      env: {...process.env, EXPORTS_APP_DIR: '/srv/umbrel/app-data/my3d-bambuddy-manager'},
+    },
+  );
+  assert.equal(legacy.status, 0, legacy.stderr);
+  assert.deepEqual(legacy.stdout.trim().split('\n'), [
+    '/srv/umbrel/app-data/my3d-bambuddy',
+    '/srv/umbrel/app-data/my3d-bambuddy/data',
+  ]);
+
+  const relocated = spawnSync(
+    'bash',
+    ['-c', 'source my3d-bambuddy-manager/exports.sh; printf "%s\\n%s\\n" "$APP_BAMBUDDY_APP_DIR" "$APP_BAMBUDDY_DATA_DIR"'],
+    {
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        EXPORTS_APP_DIR: '/srv/umbrel/app-data/my3d-bambuddy-manager',
+        APP_BAMBUDDY_APP_DIR: '/srv/umbrel/app-data/my3d-bambuddy',
+        APP_BAMBUDDY_DATA_DIR: '/mnt/external/Apps/my3d-bambuddy/data',
+      },
+    },
+  );
+  assert.equal(relocated.status, 0, relocated.stderr);
+  assert.deepEqual(relocated.stdout.trim().split('\n'), [
+    '/srv/umbrel/app-data/my3d-bambuddy',
+    '/mnt/external/Apps/my3d-bambuddy/data',
+  ]);
 });
 
 test('Manager snapshot retention is explicit', () => {
