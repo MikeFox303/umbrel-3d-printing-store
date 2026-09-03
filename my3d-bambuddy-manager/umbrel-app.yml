@@ -1,0 +1,24 @@
+manifestVersion: 1.1
+id: my3d-bambuddy-manager
+name: Bambuddy Manager
+category: automation
+version: "0.1.0"
+tagline: Stable/Beta, backup и rollback для Bambuddy
+description: >-
+  Companion-приложение для управления каналом Bambuddy в Umbrel без изменения
+  upstream Bambuddy. Показывает текущий канал и версии, создаёт резервные копии
+  перед переключением Stable/Beta, выполняет health-check и безопасный rollback.
+developer: MikeFox303
+website: https://github.com/MikeFox303/umbrel-3d-printing-store
+repo: https://github.com/MikeFox303/umbrel-3d-printing-store
+support: https://github.com/MikeFox303/umbrel-3d-printing-store/issues
+icon: https://raw.githubusercontent.com/maziggy/bambuddy/main/static/img/android-chrome-512x512.png
+port: 8282
+gallery: []
+dependencies: []
+path: ""
+torOnly: false
+releaseNotes: >-
+  Initial Bambuddy Manager scaffold. Channel discovery and read-only status are
+  implemented first; destructive switching remains disabled until backup and
+  rollback transactions pass integration tests.
