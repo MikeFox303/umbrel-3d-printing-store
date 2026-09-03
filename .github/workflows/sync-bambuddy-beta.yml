@@ -44,6 +44,7 @@ jobs:
 
           tag="$(jq -er '.tag_name' <<<"$release")"
           version="${tag#v}"
+          app_version="${version%%-daily.*}"
           image='ghcr.io/maziggy/bambuddy:daily'
 
           raw="$(docker buildx imagetools inspect --raw "$image")"
@@ -68,12 +69,14 @@ jobs:
           if [[ "$current_version" == "$version" && "$current_digest" == "$digest" ]]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "version=$version" >> "$GITHUB_OUTPUT"
+            echo "app_version=$app_version" >> "$GITHUB_OUTPUT"
             echo "Store already publishes this tested beta digest."
             exit 0
           fi
 
           echo "changed=true" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "app_version=$app_version" >> "$GITHUB_OUTPUT"
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
           echo "immutable=$immutable" >> "$GITHUB_OUTPUT"
 
@@ -82,6 +85,7 @@ jobs:
         shell: bash
         env:
           IMAGE: ${{ steps.upstream.outputs.immutable }}
+          EXPECTED_APP_VERSION: ${{ steps.upstream.outputs.app_version }}
         run: |
           set -euo pipefail
 
@@ -126,9 +130,42 @@ jobs:
               exit 1
             fi
 
+            actual_app_version="$(docker exec bambuddy-beta-smoke python -c 'from backend.app.core.config import APP_VERSION; print(APP_VERSION)')"
+            if [[ "$actual_app_version" != "$EXPECTED_APP_VERSION" ]]; then
+              echo "Refusing mismatched daily image: GitHub prerelease expects ${EXPECTED_APP_VERSION}, image reports ${actual_app_version}" >&2
+              exit 1
+            fi
+
             test -f "$root/data/bambuddy.db"
             docker rm -f bambuddy-beta-smoke >/dev/null
           done
+
+      - name: Revalidate beta head after smoke tests
+        if: steps.upstream.outputs.changed == 'true'
+        shell: bash
+        env:
+          EXPECTED_TAG: v${{ steps.upstream.outputs.version }}
+          EXPECTED_DIGEST: ${{ steps.upstream.outputs.digest }}
+        run: |
+          set -euo pipefail
+
+          releases="$(curl --fail --silent --show-error \
+            -H 'Accept: application/vnd.github+json' \
+            'https://api.github.com/repos/maziggy/bambuddy/releases?per_page=30')"
+          latest_tag="$(jq -er '
+            [ .[]
+              | select(.draft == false and .prerelease == true)
+              | select(.tag_name | test("^v[0-9]+\\.[0-9]+\\.[0-9]+b[0-9]+-daily\\.[0-9]{8}$"))
+            ][0].tag_name
+          ' <<<"$releases")"
+          latest_digest="$(docker buildx imagetools inspect ghcr.io/maziggy/bambuddy:daily | sed -n 's/^Digest:[[:space:]]*//p' | head -1)"
+
+          if [[ "$latest_tag" != "$EXPECTED_TAG" || "$latest_digest" != "$EXPECTED_DIGEST" ]]; then
+            echo "Upstream daily changed while validation was running; refusing to publish stale/mixed metadata." >&2
+            echo "expected tag=$EXPECTED_TAG digest=$EXPECTED_DIGEST" >&2
+            echo "current  tag=$latest_tag digest=$latest_digest" >&2
+            exit 1
+          fi
 
       - name: Update beta channel metadata
         if: steps.upstream.outputs.changed == 'true'
