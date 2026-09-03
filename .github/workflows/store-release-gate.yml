@@ -27,9 +27,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -Eq '^    image: ghcr\.io/mikefox303/bambuddy:.+@sha256:[0-9a-f]{64}$' my3d-bambuddy/docker-compose.yml
+          grep -Eq '^    image: ghcr\.io/maziggy/bambuddy:[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?@sha256:[0-9a-f]{64}$' my3d-bambuddy/docker-compose.yml
           grep -Eq '^    image: ghcr\.io/mikefox303/filaman-system:.+@sha256:[0-9a-f]{64}$' my3d-filaman/docker-compose.yml
           grep -Eq '^    image: ghcr\.io/donkie/spoolman:0\.26\.1@sha256:[0-9a-f]{64}$' my3d-spoolman/docker-compose.yml
+          ! grep -Eq '^[[:space:]]*network_mode:[[:space:]]*host([[:space:]]|$)' my3d-bambuddy/docker-compose.yml
+          ! grep -Eq 'ghcr\.io/mikefox303/bambuddy|:latest(@|$)|:daily(@|$)' my3d-bambuddy/docker-compose.yml
 
       - name: Validate Compose files
         shell: bash
@@ -74,4 +76,65 @@ jobs:
           done
 
           docker compose --project-name spoolman-smoke -f my3d-spoolman/docker-compose.yml logs server
+          exit 1
+
+  bambuddy-image:
+    name: Bambuddy ${{ matrix.platform }} runtime
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [linux/amd64, linux/arm64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Anonymous pull and runtime smoke test
+        shell: bash
+        env:
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          set -euo pipefail
+          image="$(sed -n 's/^[[:space:]]*image:[[:space:]]*//p' my3d-bambuddy/docker-compose.yml | head -1)"
+          test -n "$image"
+          docker pull --platform "$PLATFORM" "$image"
+
+          root="/tmp/bambuddy-${PLATFORM##*/}"
+          rm -rf "$root"
+          mkdir -p "$root/data" "$root/logs"
+
+          cleanup() {
+            docker rm -f bambuddy-runtime >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          docker run --platform "$PLATFORM" -d \
+            --name bambuddy-runtime \
+            -p 127.0.0.1:18000:8000 \
+            -e TZ=UTC \
+            -e PUID=1000 \
+            -e PGID=1000 \
+            -e PORT=8000 \
+            -v "$root/data:/app/data" \
+            -v "$root/logs:/app/logs" \
+            "$image"
+
+          for attempt in $(seq 1 120); do
+            if curl --fail --silent --show-error http://127.0.0.1:18000/health >/dev/null; then
+              docker inspect --format '{{.State.Running}}' bambuddy-runtime | grep -qx true
+              test -f "$root/data/bambuddy.db"
+              stat -c '%u:%g' "$root/data" | grep -qx '1000:1000'
+              exit 0
+            fi
+            if [[ "$(docker inspect --format '{{.State.Running}}' bambuddy-runtime)" != true ]]; then
+              break
+            fi
+            sleep 1
+          done
+
+          docker logs bambuddy-runtime
+          docker inspect bambuddy-runtime
           exit 1
