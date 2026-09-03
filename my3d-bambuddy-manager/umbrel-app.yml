@@ -2,7 +2,7 @@ manifestVersion: 1.1
 id: my3d-bambuddy-manager
 name: Bambuddy Manager
 category: automation
-version: "0.2.0"
+version: "0.2.1"
 tagline: Stable/Beta, verified backup и rollback для Bambuddy
 description: >-
   Companion-приложение для управления каналом Bambuddy в Umbrel без изменения
@@ -22,7 +22,8 @@ dependencies:
 path: ""
 torOnly: false
 releaseNotes: >-
-  Manager 0.2.0: SQLite Backup API вместо сырого копирования БД, SHA-256 и
-  integrity-check snapshot, ручной rollback, recovery незавершённой транзакции,
-  строгая проверка Stable/Beta metadata и безопасное пересоздание контейнера с
-  defaults нового Bambuddy image вместо переноса Cmd/Entrypoint старого image.
+  Umbrel package 0.2.1: Bambuddy definition/data paths теперь разрешаются через
+  dependency exports Umbrel вместо жёсткого host path. Добавлен fallback для
+  ранее установленного Bambuddy без exports.sh и non-creating bind mounts,
+  чтобы неверный путь завершался явной ошибкой, а не создавал пустой каталог.
+  Stable/Beta transaction core остаётся 0.2.0; логика snapshot/rollback не менялась.
