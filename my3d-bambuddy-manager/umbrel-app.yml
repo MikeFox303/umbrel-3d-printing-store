@@ -2,7 +2,7 @@ manifestVersion: 1.1
 id: my3d-bambuddy-manager
 name: Bambuddy Manager
 category: automation
-version: "0.2.2"
+version: "0.2.3"
 tagline: Stable/Beta, verified backup и rollback для Bambuddy
 description: >-
   Companion-приложение для управления каналом Bambuddy в Umbrel без изменения
@@ -22,9 +22,8 @@ dependencies:
 path: ""
 torOnly: false
 releaseNotes: >-
-  Umbrel package 0.2.2: legacy fallback теперь сохраняет физический Bambuddy
-  data root из runtime-карты SCRIPT_APP_DATA_ROOTS, поэтому старый Bambuddy без
-  exports.sh корректно работает и после переноса данных на другой диск.
-  Dependency exports по-прежнему имеют приоритет; при отсутствии runtime-карты
-  остаётся безопасный fallback на стандартный <app-dir>/data. Stable/Beta
-  transaction core остаётся 0.2.0; логика snapshot/rollback не менялась.
+  Umbrel package 0.2.3: исправлена штатная установка через AppStore на
+  umbrelOS 1.7.4. Все bind volumes Manager переведены в совместимый string
+  syntax, потому что patchComposeFile() в Umbrel 1.7.4 вызывает String.replace()
+  для каждого volume entry и падал на Compose long/object syntax. Dynamic
+  Bambuddy path exports/fallback, Stable/Beta snapshot и rollback логика не менялись.
