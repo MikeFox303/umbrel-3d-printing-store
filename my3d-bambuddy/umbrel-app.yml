@@ -2,7 +2,7 @@ manifestVersion: 1.1
 id: my3d-bambuddy
 name: Bambuddy
 category: automation
-version: "1.2.5.5-x2d.73"
+version: "1.2.5.5-x2d.204"
 tagline: Локальное управление принтерами Bambu Lab
 description: >-
   Неофициальный Community App package для Bambuddy. Bambuddy — self-hosted
@@ -19,5 +19,5 @@ dependencies: []
 path: ""
 torOnly: false
 releaseNotes: >-
-  Проверенная X2D-сборка Bambuddy 1.2.5.5-x2d.73.
+  Проверенная X2D-сборка Bambuddy 1.2.5.5-x2d.204.
   Сохранены Cloud Mode без обязательного Developer Mode, inventory-only и безопасный учёт расхода.
