@@ -1,129 +1,83 @@
-name: Sync validated Bambuddy X2D release
+name: Check Bambuddy pin and upstream stable
 
 on:
   schedule:
-    - cron: '23 * * * *'
+    - cron: '23 4 * * *'
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: sync-bambuddy-release
-  cancel-in-progress: false
+  group: check-bambuddy-pin
+  cancel-in-progress: true
 
 jobs:
-  sync:
+  check:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Store
         uses: actions/checkout@v4
 
-      - name: Find latest successful custom Bambuddy build
-        id: release
+      - name: Read pinned Bambuddy image
+        id: pinned
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          response="$(curl --fail --silent --show-error \
-            -H 'Accept: application/vnd.github+json' \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            'https://api.github.com/repos/MikeFox303/bambuddy/actions/workflows/build-x2d-image.yml/runs?branch=main&status=success&per_page=1')"
-          count="$(jq -r '.total_count // 0' <<<"$response")"
-          if [[ "$count" == "0" ]]; then
-            echo 'No validated custom Bambuddy image exists yet; keeping the current immutable Store pin.'
-            echo 'available=false' >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          run_number="$(jq -er '.workflow_runs[0].run_number' <<<"$response")"
-          head_sha="$(jq -er '.workflow_runs[0].head_sha' <<<"$response")"
-          echo "available=true" >> "$GITHUB_OUTPUT"
-          echo "run_number=${run_number}" >> "$GITHUB_OUTPUT"
-          echo "head_sha=${head_sha}" >> "$GITHUB_OUTPUT"
-
-      - name: Checkout exact validated Bambuddy source
-        if: steps.release.outputs.available == 'true'
-        uses: actions/checkout@v6
-        with:
-          repository: MikeFox303/bambuddy
-          ref: ${{ steps.release.outputs.head_sha }}
-          path: bambuddy-src
-          fetch-depth: 0
-
-      - name: Set up Docker Buildx
-        if: steps.release.outputs.available == 'true'
-        uses: docker/setup-buildx-action@v3
-
-      - name: Resolve exact image tag and multi-arch digest
-        if: steps.release.outputs.available == 'true'
-        id: image
-        shell: bash
-        env:
-          RUN_NUMBER: ${{ steps.release.outputs.run_number }}
-        run: |
-          set -euo pipefail
-          cd bambuddy-src
-          git remote add upstream https://github.com/maziggy/bambuddy.git || true
-          git fetch upstream main --tags
-          base="$(git tag --merged HEAD --sort=-v:refname \
-            | sed 's/^v//' \
-            | grep -E '^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$' \
-            | head -1)"
-          if [[ -z "$base" ]]; then
-            echo 'Could not resolve a stable upstream Bambuddy base for the validated source.' >&2
-            exit 1
-          fi
-          tag="${base}-x2d.${RUN_NUMBER}"
-          ref="ghcr.io/mikefox303/bambuddy:${tag}"
-          raw_manifest="$(docker buildx imagetools inspect --raw "$ref")"
-          if ! jq -e '[.manifests[].platform | "\(.os)/\(.architecture)"] | (index("linux/amd64") != null and index("linux/arm64") != null)' <<<"$raw_manifest" >/dev/null; then
-            echo "${ref} does not contain both linux/amd64 and linux/arm64" >&2
-            exit 1
-          fi
-          digest="$(docker buildx imagetools inspect "$ref" | sed -n 's/^Digest:[[:space:]]*//p' | head -1)"
-          if [[ ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
-            echo "Could not resolve a multi-architecture digest for ${ref}" >&2
-            exit 1
-          fi
+          line="$(grep -E '^    image: ghcr\.io/(maziggy|mikefox303)/bambuddy:[^@[:space:]]+@sha256:[0-9a-f]{64}$' my3d-bambuddy/docker-compose.yml)"
+          ref="${line#*image: }"
+          repository="${ref%%:*}"
+          tag="${ref#*:}"
+          tag="${tag%@sha256:*}"
+          digest="sha256:${ref##*@sha256:}"
+          echo "ref=${ref}" >> "$GITHUB_OUTPUT"
+          echo "repository=${repository}" >> "$GITHUB_OUTPUT"
           echo "tag=${tag}" >> "$GITHUB_OUTPUT"
           echo "digest=${digest}" >> "$GITHUB_OUTPUT"
 
-      - name: Update immutable Umbrel package reference
-        if: steps.release.outputs.available == 'true'
-        run: node scripts/sync-bambuddy-release.mjs '${{ steps.image.outputs.tag }}' '${{ steps.image.outputs.digest }}'
+      - name: Resolve latest non-prerelease upstream release
+        id: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="$(curl --fail --silent --show-error \
+            -H 'Accept: application/vnd.github+json' \
+            'https://api.github.com/repos/maziggy/bambuddy/releases/latest' \
+            | jq -er '.tag_name')"
+          version="${tag#v}"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+            echo "Refusing non-stable upstream version: ${tag}" >&2
+            exit 1
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
 
-      - name: Validate Store before publishing
-        if: steps.release.outputs.available == 'true'
+      - name: Inspect immutable pinned image
         shell: bash
         env:
-          APP_DATA_DIR: /tmp/umbrel-app-data
-          APP_SEED: test-seed
-          APP_PASSWORD: test-password
+          IMAGE_REF: ${{ steps.pinned.outputs.ref }}
         run: |
           set -euo pipefail
-          node --test tests/*.test.mjs
-          grep -Eq '^    image: ghcr\.io/mikefox303/bambuddy:.+@sha256:[0-9a-f]{64}$' my3d-bambuddy/docker-compose.yml
-          grep -Eq '^    image: ghcr\.io/mikefox303/filaman-system:.+@sha256:[0-9a-f]{64}$' my3d-filaman/docker-compose.yml
-          cat >/tmp/umbrel-app-proxy.yml <<'EOF'
-          services:
-            app_proxy:
-              image: alpine:3.22
-          EOF
-          docker compose -f my3d-bambuddy/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null
-          docker compose -f my3d-filaman/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null
+          raw="$(docker buildx imagetools inspect --raw "$IMAGE_REF")"
+          jq -e '[.manifests[].platform | "\(.os)/\(.architecture)"] | (index("linux/amd64") != null and index("linux/arm64") != null)' <<<"$raw" >/dev/null
+          resolved="$(docker buildx imagetools inspect "$IMAGE_REF" | sed -n 's/^Digest:[[:space:]]*//p' | head -1)"
+          test "$resolved" = '${{ steps.pinned.outputs.digest }}'
 
-      - name: Commit Store update when required
-        if: steps.release.outputs.available == 'true'
+      - name: Report migration or newer stable without publishing
         shell: bash
         run: |
           set -euo pipefail
-          if git diff --quiet; then
-            echo 'Store already references the latest validated Bambuddy X2D image.'
-            exit 0
+          if [[ '${{ steps.pinned.outputs.repository }}' == 'ghcr.io/maziggy/bambuddy' ]]; then
+            if [[ '${{ steps.upstream.outputs.version }}' != '${{ steps.pinned.outputs.tag }}' ]]; then
+              echo '::warning title=New Bambuddy stable available::Upstream stable is ${{ steps.upstream.outputs.version }}; Store remains pinned to ${{ steps.pinned.outputs.tag }} until a new acceptance PR passes all gates.'
+            else
+              echo 'Store already pins the current upstream stable release.'
+            fi
+          else
+            echo '::notice title=Legacy Bambuddy pin frozen::The Store still references the validated rollback fork image. Automatic publishing is disabled while the official-upstream migration is under acceptance.'
           fi
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add my3d-bambuddy/docker-compose.yml my3d-bambuddy/umbrel-app.yml
-          git commit -m "chore: publish Bambuddy ${{ steps.image.outputs.tag }}"
-          git push
+
+      - name: Assert workflow cannot publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'This workflow has contents:read only and contains no commit or push step.'
