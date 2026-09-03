@@ -121,7 +121,7 @@ The Manager has `/var/run/docker.sock`, which is effectively host-administration
 - Bambuddy itself does not receive the Docker socket;
 - write APIs require an additional Manager request header, which also prevents simple cross-origin form submissions from triggering operations.
 
-The current package targets the confirmed MikeFox Umbrel path `/home/umbrel/umbrel/app-data/my3d-bambuddy`. This assumption is explicit and should be revisited if the Store is later intended for Umbrel installations using a different app-data root.
+Bambuddy exposes its installed definition directory and its current physical persistent-data directory through `exports.sh`. Because Umbrel sources dependency exports before starting Manager, the Manager package mounts those exported paths instead of assuming `/home/umbrel/...` or `/state/default/...`. The persistent-data export follows Umbrel's current app data root, so Bambuddy snapshots continue to target the correct database directory if the app's data is relocated to another storage device.
 
 ## Validation
 
@@ -131,7 +131,8 @@ The Store release gate currently covers:
 - Manager Python unit tests;
 - SQLite snapshot/restore + corruption detection tests;
 - package/channel ownership architecture tests;
-- Compose validation;
+- dynamic Bambuddy dependency path contract tests;
+- Compose validation with dependency-exported definition/data paths;
 - Manager HTTP startup smoke test;
 - a real Docker container recreation smoke test that starts with deliberately overridden old `Entrypoint`/`Cmd`, recreates through Manager, then verifies the new image defaults and `/health`;
 - Bambuddy runtime smoke tests on both amd64 and arm64.
