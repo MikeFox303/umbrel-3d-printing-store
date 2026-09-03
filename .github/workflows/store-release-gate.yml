@@ -23,6 +23,9 @@ jobs:
       - name: Run Store tests
         run: node --test tests/*.test.mjs
 
+      - name: Validate shadow preflight syntax
+        run: bash -n scripts/bambuddy-shadow-preflight.sh
+
       - name: Require validated immutable image pins
         shell: bash
         run: |
