@@ -31,8 +31,11 @@ test('Manager requires Bambuddy and keeps Docker authority isolated', () => {
 test('Manager resolves Bambuddy definition and persistent data through dependency exports', () => {
   assert.match(bambuddyExports, /export APP_BAMBUDDY_APP_DIR="\$\{EXPORTS_APP_DIR\}"/);
   assert.match(bambuddyExports, /export APP_BAMBUDDY_DATA_DIR="\$\{EXPORTS_APP_DATA_DIR\}"/);
-  assert.match(compose, /\$\{APP_BAMBUDDY_APP_DIR\}:\/umbrel-app-data\/my3d-bambuddy/);
-  assert.match(compose, /\$\{APP_BAMBUDDY_DATA_DIR\}:\/umbrel-app-data\/my3d-bambuddy\/data/);
+  assert.match(compose, /source:\s*\$\{APP_BAMBUDDY_APP_DIR\}/);
+  assert.match(compose, /target:\s*\/umbrel-app-data\/my3d-bambuddy(?:\n|$)/);
+  assert.match(compose, /source:\s*\$\{APP_BAMBUDDY_DATA_DIR\}/);
+  assert.match(compose, /target:\s*\/umbrel-app-data\/my3d-bambuddy\/data(?:\n|$)/);
+  assert.equal((compose.match(/create_host_path:\s*false/g) || []).length, 2);
   assert.doesNotMatch(compose, /\/home\/umbrel\/umbrel\/app-data\/my3d-bambuddy/);
   assert.doesNotMatch(compose, /\/state\/default\/persist\/data\/.*my3d-bambuddy/);
 });
