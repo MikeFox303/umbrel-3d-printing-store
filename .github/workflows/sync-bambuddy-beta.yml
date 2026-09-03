@@ -33,6 +33,7 @@ jobs:
 
           releases="$(curl --fail --silent --show-error \
             -H 'Accept: application/vnd.github+json' \
+            -H 'Authorization: Bearer ${{ github.token }}' \
             'https://api.github.com/repos/maziggy/bambuddy/releases?per_page=30')"
 
           release="$(jq -cer '
@@ -141,6 +142,7 @@ jobs:
           done
 
       - name: Revalidate beta head after smoke tests
+        id: revalidate
         if: steps.upstream.outputs.changed == 'true'
         shell: bash
         env:
@@ -151,6 +153,7 @@ jobs:
 
           releases="$(curl --fail --silent --show-error \
             -H 'Accept: application/vnd.github+json' \
+            -H 'Authorization: Bearer ${{ github.token }}' \
             'https://api.github.com/repos/maziggy/bambuddy/releases?per_page=30')"
           latest_tag="$(jq -er '
             [ .[]
@@ -161,14 +164,17 @@ jobs:
           latest_digest="$(docker buildx imagetools inspect ghcr.io/maziggy/bambuddy:daily | sed -n 's/^Digest:[[:space:]]*//p' | head -1)"
 
           if [[ "$latest_tag" != "$EXPECTED_TAG" || "$latest_digest" != "$EXPECTED_DIGEST" ]]; then
-            echo "Upstream daily changed while validation was running; refusing to publish stale/mixed metadata." >&2
-            echo "expected tag=$EXPECTED_TAG digest=$EXPECTED_DIGEST" >&2
-            echo "current  tag=$latest_tag digest=$latest_digest" >&2
-            exit 1
+            echo "::warning title=Bambuddy daily changed during validation::Skipping this publication cycle to avoid stale/mixed channel metadata."
+            echo "expected tag=$EXPECTED_TAG digest=$EXPECTED_DIGEST"
+            echo "current  tag=$latest_tag digest=$latest_digest"
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
+          echo "publish=true" >> "$GITHUB_OUTPUT"
+
       - name: Update beta channel metadata
-        if: steps.upstream.outputs.changed == 'true'
+        if: steps.upstream.outputs.changed == 'true' && steps.revalidate.outputs.publish == 'true'
         run: |
           node scripts/sync-bambuddy-beta.mjs \
             '${{ steps.upstream.outputs.version }}' \
@@ -176,11 +182,11 @@ jobs:
           jq -e '.available == true and (.immutableImage | test("^ghcr.io/maziggy/bambuddy:daily@sha256:[0-9a-f]{64}$"))' channels/bambuddy/beta.json >/dev/null
 
       - name: Run Store tests
-        if: steps.upstream.outputs.changed == 'true'
+        if: steps.upstream.outputs.changed == 'true' && steps.revalidate.outputs.publish == 'true'
         run: node --test tests/*.test.mjs
 
       - name: Publish beta channel metadata
-        if: steps.upstream.outputs.changed == 'true'
+        if: steps.upstream.outputs.changed == 'true' && steps.revalidate.outputs.publish == 'true'
         shell: bash
         env:
           VERSION: ${{ steps.upstream.outputs.version }}
