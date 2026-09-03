@@ -2,7 +2,7 @@
 set -euo pipefail
 
 APP_ID='my3d-bambuddy'
-APP_DIR='${APP_DIR:-/home/umbrel/umbrel/app-data/my3d-bambuddy}'
+APP_DIR="${APP_DIR:-/home/umbrel/umbrel/app-data/my3d-bambuddy}"
 COMPOSE="$APP_DIR/docker-compose.yml"
 DATA_DIR="$APP_DIR/data"
 DB="$DATA_DIR/bambuddy.db"
@@ -108,9 +108,9 @@ PY
 
 verify_compose_invariants() {
   grep -Fq 'network_mode: host' "$COMPOSE"
-  grep -Eq "^[[:space:]]*APP_HOST:[[:space:]]*'?${HOST_IP//./\\.}'?([[:space:]]|$)" "$COMPOSE"
-  grep -Eq "^[[:space:]]*VIRTUAL_PRINTER_ADVERTISE_ADDRESS:[[:space:]]*'?${HOST_IP//./\\.}'?([[:space:]]|$)" "$COMPOSE"
-  grep -Eq "^[[:space:]]*VIRTUAL_PRINTER_PASV_ADDRESS:[[:space:]]*'?${HOST_IP//./\\.}'?([[:space:]]|$)" "$COMPOSE"
+  grep -Fq "APP_HOST: $HOST_IP" "$COMPOSE"
+  grep -Fq "VIRTUAL_PRINTER_ADVERTISE_ADDRESS: $HOST_IP" "$COMPOSE"
+  grep -Fq "VIRTUAL_PRINTER_PASV_ADDRESS: $HOST_IP" "$COMPOSE"
   grep -Fq 'NET_BIND_SERVICE' "$COMPOSE"
 }
 
@@ -176,7 +176,7 @@ on_error() {
   rollback "command failed with exit code $rc at line ${BASH_LINENO[0]}"
 }
 
-for cmd in docker python3 grep sed diff curl umbreld; do
+for cmd in docker python3 grep diff curl umbreld; do
   need "$cmd"
 done
 
@@ -242,14 +242,13 @@ chown umbrel:umbrel "$COMPOSE" >/dev/null 2>&1 || true
 chmod 644 "$COMPOSE"
 
 verify_compose_invariants
-
 grep -Fq "$NEW_IMAGE" "$COMPOSE"
 ! grep -Fq "$OLD_IMAGE" "$COMPOSE"
 
 echo 'Only intended compose difference:'
 diff -u "$BACKUP_COMPOSE" "$COMPOSE" || true
 
-CHANGE_LINES="$(diff -U0 "$BACKUP_COMPOSE" "$COMPOSE" | grep -E '^[+-][[:space:]]+ghcr\.io/' | wc -l | tr -d ' ')"
+CHANGE_LINES="$({ diff -U0 "$BACKUP_COMPOSE" "$COMPOSE" || true; } | grep -E '^[+-][[:space:]]+ghcr\.io/' | wc -l | tr -d ' ')"
 [[ "$CHANGE_LINES" == 2 ]] || fail 'compose changed beyond the single image replacement'
 
 echo
@@ -265,7 +264,6 @@ echo '=========================================='
 restart_app
 
 wait_container_health "$NEW_IMAGE" 120 || fail 'official Bambuddy did not become healthy'
-
 docker logs "$SERVER" >"$LIVE_LOG" 2>&1 || true
 
 echo
