@@ -28,6 +28,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m py_compile my3d-bambuddy-manager/src/server.py
+          python3 -m unittest discover -s tests -p 'test_bambuddy_manager.py' -v
           cmp my3d-bambuddy-manager/src/server.py my3d-bambuddy-manager/server.py.template
 
       - name: Require validated immutable image pins and Virtual Printer host network
