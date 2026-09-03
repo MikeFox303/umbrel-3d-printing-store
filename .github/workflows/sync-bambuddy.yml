@@ -1,83 +1,194 @@
-name: Check Bambuddy pin and upstream stable
+name: Auto-update Bambuddy from upstream stable
 
 on:
   schedule:
-    - cron: '23 4 * * *'
+    - cron: '23 */6 * * *'
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
-  group: check-bambuddy-pin
-  cancel-in-progress: true
+  group: auto-update-bambuddy
+  cancel-in-progress: false
 
 jobs:
-  check:
+  update:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Store
+      - name: Checkout Store main
         uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
 
-      - name: Read pinned Bambuddy image
-        id: pinned
-        shell: bash
-        run: |
-          set -euo pipefail
-          line="$(grep -E '^    image: ghcr\.io/(maziggy|mikefox303)/bambuddy:[^@[:space:]]+@sha256:[0-9a-f]{64}$' my3d-bambuddy/docker-compose.yml)"
-          ref="${line#*image: }"
-          repository="${ref%%:*}"
-          tag="${ref#*:}"
-          tag="${tag%@sha256:*}"
-          digest="sha256:${ref##*@sha256:}"
-          echo "ref=${ref}" >> "$GITHUB_OUTPUT"
-          echo "repository=${repository}" >> "$GITHUB_OUTPUT"
-          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
-          echo "digest=${digest}" >> "$GITHUB_OUTPUT"
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
-      - name: Resolve latest non-prerelease upstream release
+      - name: Resolve latest stable upstream release
         id: upstream
         shell: bash
         run: |
           set -euo pipefail
-          tag="$(curl --fail --silent --show-error \
+
+          current="$(sed -n 's/^version: "\([^"]*\)"$/\1/p' my3d-bambuddy/umbrel-app.yml | head -1)"
+          test -n "$current"
+
+          release="$(curl --fail --silent --show-error \
             -H 'Accept: application/vnd.github+json' \
-            'https://api.github.com/repos/maziggy/bambuddy/releases/latest' \
-            | jq -er '.tag_name')"
+            'https://api.github.com/repos/maziggy/bambuddy/releases/latest')"
+
+          tag="$(jq -er '.tag_name' <<<"$release")"
+          draft="$(jq -er '.draft' <<<"$release")"
+          prerelease="$(jq -er '.prerelease' <<<"$release")"
           version="${tag#v}"
+
+          test "$draft" = false
+          test "$prerelease" = false
+
           if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
-            echo "Refusing non-stable upstream version: ${tag}" >&2
+            echo "Refusing non-stable upstream version: $tag" >&2
             exit 1
           fi
-          echo "version=${version}" >> "$GITHUB_OUTPUT"
 
-      - name: Inspect immutable pinned image
-        shell: bash
-        env:
-          IMAGE_REF: ${{ steps.pinned.outputs.ref }}
-        run: |
-          set -euo pipefail
-          raw="$(docker buildx imagetools inspect --raw "$IMAGE_REF")"
-          jq -e '[.manifests[].platform | "\(.os)/\(.architecture)"] | (index("linux/amd64") != null and index("linux/arm64") != null)' <<<"$raw" >/dev/null
-          resolved="$(docker buildx imagetools inspect "$IMAGE_REF" | sed -n 's/^Digest:[[:space:]]*//p' | head -1)"
-          test "$resolved" = '${{ steps.pinned.outputs.digest }}'
+          echo "Current Store version: $current"
+          echo "Latest upstream stable: $version"
 
-      - name: Report migration or newer stable without publishing
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ '${{ steps.pinned.outputs.repository }}' == 'ghcr.io/maziggy/bambuddy' ]]; then
-            if [[ '${{ steps.upstream.outputs.version }}' != '${{ steps.pinned.outputs.tag }}' ]]; then
-              echo '::warning title=New Bambuddy stable available::Upstream stable is ${{ steps.upstream.outputs.version }}; Store remains pinned to ${{ steps.pinned.outputs.tag }} until a new acceptance PR passes all gates.'
-            else
-              echo 'Store already pins the current upstream stable release.'
-            fi
-          else
-            echo '::notice title=Legacy Bambuddy pin frozen::The Store still references the validated rollback fork image. Automatic publishing is disabled while the official-upstream migration is under acceptance.'
+          if [[ "$current" == "$version" ]]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "version=$version" >> "$GITHUB_OUTPUT"
+            echo "Store already publishes the latest stable Bambuddy release."
+            exit 0
           fi
 
-      - name: Assert workflow cannot publish
+          highest="$(printf '%s\n%s\n' "$current" "$version" | sort -V | tail -1)"
+          if [[ "$highest" != "$version" ]]; then
+            echo "::warning title=Refusing Bambuddy downgrade::Store=$current upstream-latest=$version"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "version=$version" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          image="ghcr.io/maziggy/bambuddy:${version}"
+          raw="$(docker buildx imagetools inspect --raw "$image")"
+          jq -e '
+            [.manifests[].platform | "\(.os)/\(.architecture)"]
+            | (index("linux/amd64") != null and index("linux/arm64") != null)
+          ' <<<"$raw" >/dev/null
+
+          digest="$(docker buildx imagetools inspect "$image" | sed -n 's/^Digest:[[:space:]]*//p' | head -1)"
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+
+          immutable="${image}@${digest}"
+          resolved="$(docker buildx imagetools inspect "$immutable" | sed -n 's/^Digest:[[:space:]]*//p' | head -1)"
+          test "$resolved" = "$digest"
+
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "immutable=$immutable" >> "$GITHUB_OUTPUT"
+
+      - name: Update Umbrel package metadata
+        if: steps.upstream.outputs.changed == 'true'
         shell: bash
         run: |
           set -euo pipefail
-          echo 'This workflow has contents:read only and contains no commit or push step.'
+          node scripts/sync-bambuddy-release.mjs \
+            '${{ steps.upstream.outputs.version }}' \
+            '${{ steps.upstream.outputs.digest }}'
+
+          grep -Eq '^    image: ghcr\.io/maziggy/bambuddy:${{ steps.upstream.outputs.version }}@sha256:[0-9a-f]{64}$' my3d-bambuddy/docker-compose.yml
+          grep -Fxq 'version: "${{ steps.upstream.outputs.version }}"' my3d-bambuddy/umbrel-app.yml
+          ! grep -Eq 'ghcr\.io/mikefox303/bambuddy|:latest(@|$)|:daily(@|$)' my3d-bambuddy/docker-compose.yml
+
+      - name: Run Store tests
+        if: steps.upstream.outputs.changed == 'true'
+        run: node --test tests/*.test.mjs
+
+      - name: Validate Bambuddy compose and required host networking
+        if: steps.upstream.outputs.changed == 'true'
+        shell: bash
+        env:
+          APP_DATA_DIR: /tmp/umbrel-app-data
+        run: |
+          set -euo pipefail
+          grep -Eq '^[[:space:]]*network_mode:[[:space:]]*host([[:space:]]|$)' my3d-bambuddy/docker-compose.yml
+          grep -Eq '^[[:space:]]*APP_HOST:[[:space:]]*192\.168\.0\.100([[:space:]]|$)' my3d-bambuddy/docker-compose.yml
+          grep -Eq '^[[:space:]]*VIRTUAL_PRINTER_ADVERTISE_ADDRESS:[[:space:]]*192\.168\.0\.100([[:space:]]|$)' my3d-bambuddy/docker-compose.yml
+          grep -Eq '^[[:space:]]*VIRTUAL_PRINTER_PASV_ADDRESS:[[:space:]]*192\.168\.0\.100([[:space:]]|$)' my3d-bambuddy/docker-compose.yml
+          grep -Eq '^[[:space:]]*-[[:space:]]*NET_BIND_SERVICE([[:space:]]|$)' my3d-bambuddy/docker-compose.yml
+
+          cat >/tmp/umbrel-app-proxy.yml <<'EOF'
+          services:
+            app_proxy:
+              image: alpine:3.22
+          EOF
+          docker compose -f my3d-bambuddy/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null
+
+      - name: Smoke-test new image on amd64 and arm64
+        if: steps.upstream.outputs.changed == 'true'
+        shell: bash
+        env:
+          IMAGE: ${{ steps.upstream.outputs.immutable }}
+        run: |
+          set -euo pipefail
+
+          cleanup() {
+            docker rm -f bambuddy-auto-smoke >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          for platform in linux/amd64 linux/arm64; do
+            cleanup
+            arch="${platform##*/}"
+            root="/tmp/bambuddy-auto-${arch}"
+            rm -rf "$root"
+            mkdir -p "$root/data" "$root/logs"
+
+            docker pull --platform "$platform" "$IMAGE"
+            docker run --platform "$platform" -d \
+              --name bambuddy-auto-smoke \
+              -p 127.0.0.1:18000:8000 \
+              -e TZ=UTC \
+              -e PUID=1000 \
+              -e PGID=1000 \
+              -e PORT=8000 \
+              -v "$root/data:/app/data" \
+              -v "$root/logs:/app/logs" \
+              "$IMAGE"
+
+            healthy=false
+            for attempt in $(seq 1 120); do
+              if curl --fail --silent --show-error http://127.0.0.1:18000/health >/dev/null 2>&1; then
+                healthy=true
+                break
+              fi
+              if [[ "$(docker inspect --format '{{.State.Running}}' bambuddy-auto-smoke)" != true ]]; then
+                break
+              fi
+              sleep 1
+            done
+
+            if [[ "$healthy" != true ]]; then
+              docker logs bambuddy-auto-smoke || true
+              exit 1
+            fi
+
+            test -f "$root/data/bambuddy.db"
+            docker rm -f bambuddy-auto-smoke >/dev/null
+          done
+
+      - name: Publish update to Store main
+        if: steps.upstream.outputs.changed == 'true'
+        shell: bash
+        env:
+          VERSION: ${{ steps.upstream.outputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add my3d-bambuddy/docker-compose.yml my3d-bambuddy/umbrel-app.yml
+          git diff --cached --check
+          git diff --cached --quiet && exit 0
+          git commit -m "chore: update Bambuddy to ${VERSION}"
+          git push origin HEAD:main
