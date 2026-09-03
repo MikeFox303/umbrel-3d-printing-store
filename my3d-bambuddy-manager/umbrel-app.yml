@@ -15,7 +15,8 @@ support: https://github.com/MikeFox303/umbrel-3d-printing-store/issues
 icon: https://raw.githubusercontent.com/maziggy/bambuddy/main/static/img/android-chrome-512x512.png
 port: 8282
 gallery: []
-dependencies: []
+dependencies:
+  - my3d-bambuddy
 path: ""
 torOnly: false
 releaseNotes: >-
