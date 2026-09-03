@@ -115,7 +115,7 @@ verify_compose_invariants() {
 }
 
 verify_x2d_ports() {
-  docker exec "$SERVER" python - "$X2D_IP" <<'PY'
+  docker exec -i "$SERVER" python - "$X2D_IP" <<'PY'
 import socket
 import sys
 host = sys.argv[1]
@@ -137,7 +137,7 @@ PY
 }
 
 check_not_printing() {
-  docker exec "$SERVER" python - <<'PY'
+  docker exec -i "$SERVER" python - <<'PY'
 import json
 import urllib.request
 
