@@ -4,10 +4,12 @@
   "version": "1.2.6b1-daily.20260830",
   "releaseTag": "v1.2.6b1-daily.20260830",
   "image": "ghcr.io/maziggy/bambuddy:daily",
-  "digest": null,
-  "immutableImage": null,
+  "digest": "sha256:ff1929447258f6649de51d630c5c13cd6c1b329f53f3adb81202bb7ab7b0a9bc",
+  "immutableImage": "ghcr.io/maziggy/bambuddy:daily@sha256:ff1929447258f6649de51d630c5c13cd6c1b329f53f3adb81202bb7ab7b0a9bc",
   "source": "github-prerelease+ghcr-daily",
-  "testedPlatforms": [],
-  "available": false,
-  "note": "Bootstrap metadata. sync-bambuddy-beta workflow resolves :daily to an immutable digest and enables this channel after multi-arch and runtime smoke tests."
+  "testedPlatforms": [
+    "linux/amd64",
+    "linux/arm64"
+  ],
+  "available": true
 }
