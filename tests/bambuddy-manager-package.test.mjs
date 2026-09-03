@@ -7,6 +7,7 @@ const compose = fs.readFileSync('my3d-bambuddy-manager/docker-compose.yml', 'utf
 const source = fs.readFileSync('my3d-bambuddy-manager/src/server.py', 'utf8');
 const template = fs.readFileSync('my3d-bambuddy-manager/server.py.template', 'utf8');
 const bambuddyExports = fs.readFileSync('my3d-bambuddy/exports.sh', 'utf8');
+const managerExports = fs.readFileSync('my3d-bambuddy-manager/exports.sh', 'utf8');
 
 test('Manager manifest and runtime versions match', () => {
   const manifestVersion = manifest.match(/^version: "([^"]+)"$/m)?.[1];
@@ -33,6 +34,16 @@ test('Manager resolves Bambuddy definition and persistent data through dependenc
   assert.match(compose, /\$\{APP_BAMBUDDY_DATA_DIR\}:\/umbrel-app-data\/my3d-bambuddy\/data/);
   assert.doesNotMatch(compose, /\/home\/umbrel\/umbrel\/app-data\/my3d-bambuddy/);
   assert.doesNotMatch(compose, /\/state\/default\/persist\/data\/.*my3d-bambuddy/);
+});
+
+test('Manager has a path fallback for Bambuddy packages installed before dependency exports existed', () => {
+  assert.match(managerExports, /if \[\[ -z "\$\{APP_BAMBUDDY_APP_DIR:-\}" \]\]/);
+  assert.match(managerExports, /dirname "\$\{EXPORTS_APP_DIR\}"/);
+  assert.match(managerExports, /\/my3d-bambuddy"/);
+  assert.match(managerExports, /if \[\[ -z "\$\{APP_BAMBUDDY_DATA_DIR:-\}" \]\]/);
+  assert.match(managerExports, /APP_BAMBUDDY_DATA_DIR="\$\{APP_BAMBUDDY_APP_DIR\}\/data"/);
+  assert.doesNotMatch(managerExports, /\/home\/umbrel\/umbrel/);
+  assert.doesNotMatch(managerExports, /\/state\/default\/persist/);
 });
 
 test('Manager snapshot retention is explicit', () => {
