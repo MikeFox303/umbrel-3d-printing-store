@@ -1,6 +1,11 @@
 name: Sync Bambuddy beta channel
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/sync-bambuddy-beta.yml'
+      - 'scripts/sync-bambuddy-beta.mjs'
   schedule:
     - cron: '53 */6 * * *'
   workflow_dispatch:
