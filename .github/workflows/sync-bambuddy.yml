@@ -1,6 +1,11 @@
 name: Sync Bambuddy stable channel
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/sync-bambuddy.yml'
+      - 'scripts/sync-bambuddy-stable.mjs'
   schedule:
     - cron: '23 */6 * * *'
   workflow_dispatch:
