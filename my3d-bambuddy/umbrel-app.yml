@@ -21,4 +21,5 @@ torOnly: false
 releaseNotes: >-
   Release candidate перехода на официальный Bambuddy 1.2.5.5.
   Runtime использует официальный ghcr.io/maziggy/bambuddy по immutable digest;
+  текущая host-network конфигурация и адреса Virtual Printer 192.168.0.100 сохранены.
   FilaMan-specific fork code больше не является частью runtime. Spoolman — рекомендуемый inventory backend.
