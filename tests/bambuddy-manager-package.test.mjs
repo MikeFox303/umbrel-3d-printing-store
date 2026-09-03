@@ -42,13 +42,33 @@ test('Manager requires Bambuddy and keeps Docker authority isolated', () => {
 test('Manager resolves Bambuddy definition and persistent data through dependency exports', () => {
   assert.match(bambuddyExports, /export APP_BAMBUDDY_APP_DIR="\$\{EXPORTS_APP_DIR\}"/);
   assert.match(bambuddyExports, /export APP_BAMBUDDY_DATA_DIR="\$\{EXPORTS_APP_DATA_DIR\}"/);
-  assert.match(compose, /source:\s*\$\{APP_BAMBUDDY_APP_DIR\}/);
-  assert.match(compose, /target:\s*\/umbrel-app-data\/my3d-bambuddy(?:\n|$)/);
-  assert.match(compose, /source:\s*\$\{APP_BAMBUDDY_DATA_DIR\}/);
-  assert.match(compose, /target:\s*\/umbrel-app-data\/my3d-bambuddy\/data(?:\n|$)/);
-  assert.equal((compose.match(/create_host_path:\s*false/g) || []).length, 2);
+  assert.match(compose, /\$\{APP_BAMBUDDY_APP_DIR\}:\/umbrel-app-data\/my3d-bambuddy(?:\n|$)/);
+  assert.match(compose, /\$\{APP_BAMBUDDY_DATA_DIR\}:\/umbrel-app-data\/my3d-bambuddy\/data(?:\n|$)/);
+  assert.doesNotMatch(compose, /create_host_path:/);
   assert.doesNotMatch(compose, /\/home\/umbrel\/umbrel\/app-data\/my3d-bambuddy/);
   assert.doesNotMatch(compose, /\/state\/default\/persist\/data\/.*my3d-bambuddy/);
+});
+
+test('Manager volumes stay compatible with umbrelOS 1.7.4 patchComposeFile', () => {
+  const serverVolumesBlock = compose.match(/\n    volumes:\n([\s\S]*?)\n    tmpfs:/)?.[1];
+  assert.ok(serverVolumesBlock, 'server volumes block is missing');
+
+  const volumeEntries = [...serverVolumesBlock.matchAll(/^\s+-\s+(.+)$/gm)].map((match) => match[1]);
+  assert.equal(volumeEntries.length, 5, 'Manager server must keep exactly five volume entries');
+  assert.doesNotMatch(serverVolumesBlock, /^\s+-\s+type:/m);
+  assert.doesNotMatch(serverVolumesBlock, /^\s+source:/m);
+  assert.doesNotMatch(serverVolumesBlock, /^\s+target:/m);
+
+  // umbrelOS 1.7.4 App.patchComposeFile() treats every volume entry as a string
+  // and calls replace() twice. Object/long Compose volume syntax throws here
+  // before app-script install is ever reached.
+  for (const volume of volumeEntries) {
+    assert.doesNotThrow(() =>
+      volume
+        .replace('/data/storage/downloads', '/home/Downloads')
+        .replace('/data/storage', '/home'),
+    );
+  }
 });
 
 test('Manager has a path fallback for Bambuddy packages installed before dependency exports existed', () => {
