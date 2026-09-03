@@ -1,25 +1,105 @@
 # 3D Printing Community App Store для Umbrel
 
-Неофициальный Store для self-hosted программ 3D-печати: FilaMan, Bambuddy, Printbuddy и Spoolman.
+Неофициальный Community App Store для self-hosted программ 3D-печати: FilaMan, Bambuddy, Bambuddy Manager, Printbuddy и Spoolman.
 
-## Установка
+## Установка Store
 
 1. В UmbrelOS добавьте URL этого GitHub-репозитория как Community App Store.
-2. Выберите нужное приложение в каталоге и установите его обычным способом через Umbrel.
+2. Дождитесь обновления каталога и установите нужные приложения обычным способом через Umbrel.
+3. Для Bambuddy сначала установите **Bambuddy**, затем **Bambuddy Manager**. Manager имеет зависимость от `my3d-bambuddy` и управляет уже установленным runtime.
 
-Для собственных сборок FilaMan и Bambuddy package закрепляется на опубликованном multi-architecture SHA256 digest и намеренно не использует `latest`. Printbuddy использует конкретный стабильный upstream release tag, а Spoolman — конкретный стабильный release tag с закреплённым multi-architecture digest.
+UmbrelOS периодически обновляет зарегистрированные Community Store, поэтому удалять и повторно добавлять Store после каждой новой версии не нужно.
 
-## Автоматические обновления
+## Bambuddy: рекомендуемый способ установки и обновления
 
-UmbrelOS проверяет зарегистрированные Community Store каждые 5 минут. Удалять и повторно добавлять этот Store не нужно. После успешной сборки ветки `main` репозитория [MikeFox303/filaman-system](https://github.com/MikeFox303/filaman-system) workflow этого Store автоматически получает immutable digest, повышает версию пакета и публикует обновление. Затем Umbrel показывает обычную кнопку обновления приложения; каталог данных и ID `my3d-filaman` не меняются.
+`my3d-bambuddy` использует официальный upstream `maziggy/bambuddy`. Версия, указанная в Umbrel package, является проверенным **bootstrap runtime** — безопасной исходной точкой, с которой Bambuddy может быть установлен обычным способом.
+
+После установки **Bambuddy Manager** Stable/Beta обновления Bambuddy больше не требуют переписывать Umbrel package. Store публикует отдельно проверенные channel metadata:
+
+- `channels/bambuddy/stable.json`
+- `channels/bambuddy/beta.json`
+
+Перед публикацией нового runtime Store CI:
+
+- получает immutable digest официального GHCR image;
+- проверяет `linux/amd64`;
+- проверяет `linux/arm64`;
+- сверяет фактический `APP_VERSION` внутри контейнера;
+- повторно проверяет upstream tag/digest после smoke-test;
+- только после этого делает канал доступным Manager.
+
+Схема обновления:
+
+```text
+maziggy/bambuddy release или daily build
+                  |
+                  v
+        Store channel validation
+          |                  |
+       amd64              arm64
+          |                  |
+          +--------+---------+
+                   |
+                   v
+        stable.json / beta.json
+                   |
+                   v
+           Bambuddy Manager
+                   |
+          snapshot + switch
+                   |
+                   v
+          официальный Bambuddy
+```
+
+### Bambuddy Manager: Quick Start
+
+1. Установите **Bambuddy** из этого Store и убедитесь, что он запускается.
+2. Установите **Bambuddy Manager**. В Umbrel он открывается как отдельное приложение на порту `8282` через App Proxy.
+3. Откройте Manager и проверьте текущий runtime и доступные каналы.
+4. Для обычного использования оставайтесь на **Stable**.
+5. Чтобы протестировать новую версию, выберите **Beta**. Manager сначала остановит Bambuddy, создаст проверенный SQLite snapshot и только затем заменит runtime.
+6. Для возврата **Beta → Stable** Manager использует сохранённую Stable snapshot перед запуском более старой Stable-схемы БД.
+7. Если переключение или health-check не проходит, Manager автоматически пытается выполнить rollback. Последний проверенный snapshot также можно восстановить вручную.
+
+Manager проверяет SHA-256, SQLite `PRAGMA integrity_check`, ожидаемый immutable image и `/health`. Незавершённая транзакция сохраняется на диск и может быть восстановлена после перезапуска Manager или закрытия браузера.
+
+> **Важно:** Bambuddy Manager управляет Docker runtime и имеет доступ к Docker socket. Не отключайте Umbrel App Proxy authentication для Manager и не публикуйте его порт напрямую в интернет.
+
+### Bootstrap package и runtime channel — это разные версии
+
+В интерфейсе Umbrel версия приложения `my3d-bambuddy` может отличаться от фактической версии запущенного Bambuddy после переключения через Manager. Это нормально:
+
+```text
+Umbrel package version = bootstrap/package definition
+Bambuddy runtime       = Stable или Beta channel, выбранный Manager
+```
+
+Channel automation намеренно **не изменяет** `my3d-bambuddy/docker-compose.yml` и `umbrel-app.yml`. Это исключает конфликт двух независимых механизмов обновления во время существования Beta rollback point.
+
+Не рекомендуется вручную менять image/command/entrypoint Bambuddy Compose, пока runtime управляется Manager. При неподдерживаемых service overrides Manager откажется от переключения вместо небезопасного угадывания конфигурации.
+
+## Автоматические обновления FilaMan
+
+После успешной сборки ветки `main` репозитория [MikeFox303/filaman-system](https://github.com/MikeFox303/filaman-system) workflow этого Store автоматически получает immutable digest, повышает версию пакета и публикует обновление. Затем Umbrel показывает обычную кнопку обновления приложения; каталог данных и ID `my3d-filaman` не меняются.
 
 Обновления официального [Fire-Devils/filaman-system](https://github.com/Fire-Devils/filaman-system) поступают в локализованный репозиторий отдельным pull request. Проверки блокируют публикацию, если в русском или украинском словаре отсутствуют ключи либо изменены placeholders.
+
+## Immutable images
+
+FilaMan package закрепляется на опубликованном multi-architecture SHA256 digest и намеренно не использует `latest`.
+
+Bambuddy Stable/Beta channels также закрепляются на immutable digest официального `ghcr.io/maziggy/bambuddy`. Для multi-architecture validation CI запускает каждую архитектуру по её OCI child-manifest digest, а пользователю публикуется общий multi-arch index digest.
+
+Printbuddy использует конкретный стабильный upstream release tag. Spoolman использует конкретный стабильный release tag с закреплённым multi-architecture digest.
 
 ## Данные, обновление и backup
 
 Данные Umbrel хранятся в `${APP_DATA_DIR}/data` и не попадают в Git. Перед крупным обновлением рекомендуется создать backup данных. Обычное обновление через Umbrel не меняет каталог данных.
 
-## Переход с Dockge
+Bambuddy Manager создаёт transactional snapshots перед destructive runtime operations, но этот snapshot защищает прежде всего SQLite database и runtime definition. Для point-in-time recovery media/archive/library файлов сохраняйте также обычные полные backup Bambuddy.
+
+## Переход FilaMan с Dockge
 
 1. Убедитесь, что старая и новая версии FilaMan совместимы; безопаснее начать с той же upstream-версии `1.2.42`.
 2. На Umbrel host скопируйте `scripts/backup-dockge-filaman.sh` и запустите его после остановки старого FilaMan. Скрипт определяет фактический `/app/data` mount через `docker inspect`, создаёт tar.gz и SHA256, ничего не удаляет.
@@ -27,7 +107,7 @@ UmbrelOS проверяет зарегистрированные Community Store
 4. Запустите `scripts/migrate-dockge-filaman.sh`. Скрипт требует существующий backup, проверяет остановку обоих контейнеров, создаёт backup непустого destination, копирует данные и ждёт `/health`.
 5. Проверьте login, русский интерфейс, катушки, API и restart. До подтверждения не удаляйте Dockge stack, Docker volume или backup archive.
 
-## Rollback
+## Rollback FilaMan после миграции
 
 1. Stop Umbrel FilaMan.
 2. Не изменяйте исходный Dockge volume.
@@ -42,7 +122,8 @@ UmbrelOS проверяет зарегистрированные Community Store
 3D Printing
 ├── FilaMan — учёт и управление inventory филамента.
 ├── Bambuddy — локальное управление, мониторинг, AMS и камера Bambu Lab.
-├── Printbuddy — единая multi-vendor панель для Bambu Lab, Klipper/Moonraker и других принтеров.
+├── Bambuddy Manager — Stable/Beta, verified snapshot и rollback для Bambuddy.
+├── Printbuddy — multi-vendor панель для Bambu Lab, Klipper/Moonraker и других принтеров.
 └── Spoolman — центральная база катушек, остатков, стоимости и истории расхода.
 ```
 
@@ -65,13 +146,18 @@ UmbrelOS ── Printbuddy ──┼── Klipper / Moonraker
 Ender / Klipper ── Moonraker ── Spoolman
 ```
 
-Альтернативно:
+Для Bambu Lab возможна отдельная связка:
 
 ```text
 Bambu Lab ── Bambuddy ── Spoolman
+                |
+                └── Bambuddy Manager
+                    Stable / Beta / Rollback
 ```
 
-Bambuddy — отдельный bridge-networked Umbrel package на порту `8280`.
+Bambuddy — отдельный Umbrel package на порту `8280`.
+
+Bambuddy Manager — companion package на порту `8282`, доступный через Umbrel App Proxy. Он управляет только установленным `my3d-bambuddy` и не передаёт Docker socket самому Bambuddy.
 
 Printbuddy — отдельный host-networked Umbrel package на порту `8281`. Host networking соответствует upstream-рекомендации для Linux и позволяет LAN discovery, Bambu MQTT/FTPS/camera и Virtual Printer работать без Docker NAT. Обычная установка Printbuddy может работать параллельно с Bambuddy, FilaMan и Spoolman; одновременно включать несколько Virtual Printer/proxy-сервисов на одинаковых host-портах не следует.
 

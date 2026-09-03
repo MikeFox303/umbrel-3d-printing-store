@@ -2,6 +2,33 @@
 
 Companion Umbrel app for managing the Bambuddy runtime channel without modifying upstream `maziggy/bambuddy`.
 
+## Quick Start
+
+1. Install **Bambuddy** (`my3d-bambuddy`) from this Store and verify that it starts normally.
+2. Install **Bambuddy Manager** (`my3d-bambuddy-manager`). Umbrel exposes it through App Proxy on port `8282`.
+3. Open Manager and review three separate values: the installed Umbrel bootstrap package, the currently running Bambuddy runtime, and the Store-approved Stable/Beta channels.
+4. Stay on **Stable** for normal use. Use **Beta** only when you intentionally want to test the validated daily/prerelease channel.
+5. Before every destructive switch Manager stops Bambuddy and creates a verified transaction snapshot. Do not manually restart or replace the Bambuddy container while a switch is in progress.
+6. A failed target startup or health check triggers automatic rollback. The latest verified snapshot can also be restored manually from Manager.
+7. When returning **Beta -> Stable**, Manager restores the protected Stable snapshot before starting the older Stable runtime so a Stable build is not intentionally opened against Beta-only database migrations.
+
+Expected version model:
+
+```text
+Umbrel package version = bootstrap/package definition
+Bambuddy runtime       = Stable or Beta channel selected by Manager
+```
+
+Those versions may differ after a channel switch and that is expected. Channel automation updates only `channels/bambuddy/stable.json` and `channels/bambuddy/beta.json`; it does not rewrite the installed `my3d-bambuddy` package.
+
+### Safety rules for operators
+
+- Keep Manager behind Umbrel App Proxy authentication.
+- Do not publish port `8282` directly to the internet.
+- Do not give `/var/run/docker.sock` to the Bambuddy container itself.
+- Avoid hand-editing Bambuddy `image`, `command`, `entrypoint`, `user`, `working_dir` or `healthcheck` while Manager owns runtime switching. Unsupported overrides cause Manager to refuse the switch instead of guessing.
+- Manager snapshots protect SQLite databases and runtime definition; keep normal full Bambuddy backups as well when media, archives or library files also need point-in-time recovery.
+
 ## Manager 0.2
 
 - reads and validates Store-approved `stable` and `beta` channel metadata;
