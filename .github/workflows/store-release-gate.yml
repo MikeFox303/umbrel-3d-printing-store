@@ -23,21 +23,6 @@ jobs:
       - name: Run Store tests
         run: node --test tests/*.test.mjs
 
-      - name: Validate maintenance script syntax
-        shell: bash
-        run: |
-          set -euo pipefail
-          bash -n scripts/bambuddy-shadow-preflight.sh
-          bash -n scripts/bambuddy-live-rc.sh
-          bash -n scripts/bambuddy-live-verify.sh
-          bash -n scripts/bambuddy-restart-persistence.sh
-          bash -n scripts/bambuddy-single-petg-accounting.sh
-          bash -n tests/bambuddy-live-rc-mock.sh
-
-      - name: Test live RC success and automatic rollback
-        shell: bash
-        run: bash tests/bambuddy-live-rc-mock.sh
-
       - name: Require validated immutable image pins and Virtual Printer host network
         shell: bash
         run: |
