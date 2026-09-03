@@ -4,6 +4,7 @@ import test from 'node:test';
 
 const stableWorkflow = fs.readFileSync('.github/workflows/sync-bambuddy.yml', 'utf8');
 const betaWorkflow = fs.readFileSync('.github/workflows/sync-bambuddy-beta.yml', 'utf8');
+const multiarchSmoke = fs.readFileSync('scripts/smoke-bambuddy-multiarch.sh', 'utf8');
 
 test('stable automation publishes channel metadata without mutating the Umbrel package', () => {
   assert.match(stableWorkflow, /node scripts\/sync-bambuddy-stable\.mjs/);
@@ -19,10 +20,15 @@ test('beta automation only publishes beta channel metadata', () => {
   assert.match(betaWorkflow, /git add channels\/bambuddy\/beta\.json/);
 });
 
-test('both channel workflows smoke-test amd64 and arm64 before publication', () => {
+test('both channel workflows delegate multiarch runtime validation before publication', () => {
   for (const workflow of [stableWorkflow, betaWorkflow]) {
-    assert.match(workflow, /linux\/amd64 linux\/arm64/);
-    assert.match(workflow, /APP_VERSION/);
+    assert.match(workflow, /bash scripts\/smoke-bambuddy-multiarch\.sh/);
+    assert.match(workflow, /EXPECTED_APP_VERSION/);
     assert.match(workflow, /Revalidate .* after smoke tests/);
   }
+
+  assert.match(multiarchSmoke, /linux\/amd64 linux\/arm64/);
+  assert.match(multiarchSmoke, /\.platform\.architecture == \$arch/);
+  assert.match(multiarchSmoke, /platform_image="\$\{REPOSITORY\}@\$\{child_digest\}"/);
+  assert.match(multiarchSmoke, /APP_VERSION/);
 });

@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/sync-bambuddy-beta.yml'
       - 'scripts/sync-bambuddy-beta.mjs'
+      - 'scripts/smoke-bambuddy-multiarch.sh'
   schedule:
     - cron: '53 */6 * * *'
   workflow_dispatch:
@@ -93,58 +94,11 @@ jobs:
           IMAGE: ${{ steps.upstream.outputs.immutable }}
           EXPECTED_APP_VERSION: ${{ steps.upstream.outputs.app_version }}
         run: |
-          set -euo pipefail
-
-          cleanup() {
-            docker rm -f bambuddy-beta-smoke >/dev/null 2>&1 || true
-          }
-          trap cleanup EXIT
-
-          for platform in linux/amd64 linux/arm64; do
-            cleanup
-            arch="${platform##*/}"
-            root="/tmp/bambuddy-beta-${arch}"
-            rm -rf "$root"
-            mkdir -p "$root/data" "$root/logs"
-
-            docker pull --platform "$platform" "$IMAGE"
-            docker run --platform "$platform" -d \
-              --name bambuddy-beta-smoke \
-              -p 127.0.0.1:18001:8000 \
-              -e TZ=UTC \
-              -e PUID=1000 \
-              -e PGID=1000 \
-              -e PORT=8000 \
-              -v "$root/data:/app/data" \
-              -v "$root/logs:/app/logs" \
-              "$IMAGE"
-
-            healthy=false
-            for attempt in $(seq 1 120); do
-              if curl --fail --silent --show-error http://127.0.0.1:18001/health >/dev/null 2>&1; then
-                healthy=true
-                break
-              fi
-              if [[ "$(docker inspect --format '{{.State.Running}}' bambuddy-beta-smoke)" != true ]]; then
-                break
-              fi
-              sleep 1
-            done
-
-            if [[ "$healthy" != true ]]; then
-              docker logs bambuddy-beta-smoke || true
-              exit 1
-            fi
-
-            actual_app_version="$(docker exec bambuddy-beta-smoke python -c 'from backend.app.core.config import APP_VERSION; print(APP_VERSION)')"
-            if [[ "$actual_app_version" != "$EXPECTED_APP_VERSION" ]]; then
-              echo "Refusing mismatched daily image: GitHub prerelease expects ${EXPECTED_APP_VERSION}, image reports ${actual_app_version}" >&2
-              exit 1
-            fi
-
-            test -f "$root/data/bambuddy.db"
-            docker rm -f bambuddy-beta-smoke >/dev/null
-          done
+          bash scripts/smoke-bambuddy-multiarch.sh \
+            "$IMAGE" \
+            "$EXPECTED_APP_VERSION" \
+            bambuddy-beta-smoke \
+            18001
 
       - name: Revalidate beta head after smoke tests
         id: revalidate
