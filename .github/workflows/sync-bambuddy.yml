@@ -14,7 +14,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: auto-update-bambuddy-stable
+  group: bambuddy-channel-sync
   cancel-in-progress: false
 
 jobs:
