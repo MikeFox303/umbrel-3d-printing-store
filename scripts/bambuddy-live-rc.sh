@@ -145,7 +145,7 @@ ACTIVE = {"RUNNING", "PAUSE", "PREPARE", "SLICING"}
 base = "http://127.0.0.1:8000/api/v1"
 
 try:
-    with urllib.request.urlopen(base + "/printers", timeout=4) as r:
+    with urllib.request.urlopen(base + "/printers/", timeout=4) as r:
         printers = json.load(r)
 except Exception as exc:
     raise SystemExit(f"cannot verify printer idle state: {type(exc).__name__}: {exc}")
