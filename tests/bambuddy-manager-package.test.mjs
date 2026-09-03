@@ -6,6 +6,7 @@ const manifest = fs.readFileSync('my3d-bambuddy-manager/umbrel-app.yml', 'utf8')
 const compose = fs.readFileSync('my3d-bambuddy-manager/docker-compose.yml', 'utf8');
 const source = fs.readFileSync('my3d-bambuddy-manager/src/server.py', 'utf8');
 const template = fs.readFileSync('my3d-bambuddy-manager/server.py.template', 'utf8');
+const bambuddyExports = fs.readFileSync('my3d-bambuddy/exports.sh', 'utf8');
 
 test('Manager manifest and runtime versions match', () => {
   const manifestVersion = manifest.match(/^version: "([^"]+)"$/m)?.[1];
@@ -23,6 +24,15 @@ test('Manager requires Bambuddy and keeps Docker authority isolated', () => {
   assert.match(manifest, /dependencies:\n\s+- my3d-bambuddy(?:\n|$)/);
   assert.match(compose, /\/var\/run\/docker\.sock:\/var\/run\/docker\.sock/);
   assert.doesNotMatch(compose, /PROXY_AUTH_ADD:\s*["']?false/);
+});
+
+test('Manager resolves Bambuddy definition and persistent data through dependency exports', () => {
+  assert.match(bambuddyExports, /export APP_BAMBUDDY_APP_DIR="\$\{EXPORTS_APP_DIR\}"/);
+  assert.match(bambuddyExports, /export APP_BAMBUDDY_DATA_DIR="\$\{EXPORTS_APP_DATA_DIR\}"/);
+  assert.match(compose, /\$\{APP_BAMBUDDY_APP_DIR\}:\/umbrel-app-data\/my3d-bambuddy/);
+  assert.match(compose, /\$\{APP_BAMBUDDY_DATA_DIR\}:\/umbrel-app-data\/my3d-bambuddy\/data/);
+  assert.doesNotMatch(compose, /\/home\/umbrel\/umbrel\/app-data\/my3d-bambuddy/);
+  assert.doesNotMatch(compose, /\/state\/default\/persist\/data\/.*my3d-bambuddy/);
 });
 
 test('Manager snapshot retention is explicit', () => {
