@@ -121,7 +121,7 @@ The Manager has `/var/run/docker.sock`, which is effectively host-administration
 - Bambuddy itself does not receive the Docker socket;
 - write APIs require an additional Manager request header, which also prevents simple cross-origin form submissions from triggering operations.
 
-Bambuddy exposes its installed definition directory and its current physical persistent-data directory through `exports.sh`. Because Umbrel sources dependency exports before starting Manager, the Manager package mounts those exported paths instead of assuming `/home/umbrel/...` or `/state/default/...`. The persistent-data export follows Umbrel's current app data root, so Bambuddy snapshots continue to target the correct database directory if the app's data is relocated to another storage device.
+New Bambuddy packages export both their installed definition directory and their current physical persistent-data directory through `exports.sh`. Umbrel sources dependency exports before Manager's own exports, so Manager prefers those exact paths and follows Bambuddy if its persistent data is relocated to another storage device. For Bambuddy installations created before this dependency contract existed, Manager has a compatibility fallback that derives the sibling `my3d-bambuddy` definition directory from its own `EXPORTS_APP_DIR` and uses the traditional `<app>/data` location. Both paths are mounted with `create_host_path: false`, so an invalid or unavailable path fails explicitly instead of silently creating an empty host directory. No `/home/umbrel/...` or `/state/default/...` host path is hard-coded.
 
 ## Validation
 
@@ -131,8 +131,8 @@ The Store release gate currently covers:
 - Manager Python unit tests;
 - SQLite snapshot/restore + corruption detection tests;
 - package/channel ownership architecture tests;
-- dynamic Bambuddy dependency path contract tests;
-- Compose validation with dependency-exported definition/data paths;
+- dynamic Bambuddy dependency path contract tests, including the legacy fallback and relocated-data preservation;
+- Compose validation with separate dependency-exported definition/data paths and non-creating bind mounts;
 - Manager HTTP startup smoke test;
 - a real Docker container recreation smoke test that starts with deliberately overridden old `Entrypoint`/`Cmd`, recreates through Manager, then verifies the new image defaults and `/health`;
 - Bambuddy runtime smoke tests on both amd64 and arm64.
