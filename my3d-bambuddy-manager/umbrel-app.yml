@@ -2,7 +2,7 @@ manifestVersion: 1.1
 id: my3d-bambuddy-manager
 name: Bambuddy Manager
 category: automation
-version: "0.2.1"
+version: "0.2.2"
 tagline: Stable/Beta, verified backup и rollback для Bambuddy
 description: >-
   Companion-приложение для управления каналом Bambuddy в Umbrel без изменения
@@ -22,8 +22,9 @@ dependencies:
 path: ""
 torOnly: false
 releaseNotes: >-
-  Umbrel package 0.2.1: Bambuddy definition/data paths теперь разрешаются через
-  dependency exports Umbrel вместо жёсткого host path. Добавлен fallback для
-  ранее установленного Bambuddy без exports.sh и non-creating bind mounts,
-  чтобы неверный путь завершался явной ошибкой, а не создавал пустой каталог.
-  Stable/Beta transaction core остаётся 0.2.0; логика snapshot/rollback не менялась.
+  Umbrel package 0.2.2: legacy fallback теперь сохраняет физический Bambuddy
+  data root из runtime-карты SCRIPT_APP_DATA_ROOTS, поэтому старый Bambuddy без
+  exports.sh корректно работает и после переноса данных на другой диск.
+  Dependency exports по-прежнему имеют приоритет; при отсутствии runtime-карты
+  остаётся безопасный fallback на стандартный <app-dir>/data. Stable/Beta
+  transaction core остаётся 0.2.0; логика snapshot/rollback не менялась.
