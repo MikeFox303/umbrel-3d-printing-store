@@ -1,0 +1,28 @@
+manifestVersion: 1.1
+id: my3d-bambuddy-manager
+name: Bambuddy Manager
+category: automation
+version: "0.2.0"
+tagline: Stable/Beta, verified backup и rollback для Bambuddy
+description: >-
+  Companion-приложение для управления каналом Bambuddy в Umbrel без изменения
+  upstream Bambuddy. Показывает текущий runtime и проверенные Store каналы,
+  создаёт консистентный SQLite snapshot перед переключением Stable/Beta,
+  проверяет checksum/integrity, выполняет health-check, manual rollback и
+  восстановление незавершённых транзакций.
+developer: MikeFox303
+website: https://github.com/MikeFox303/umbrel-3d-printing-store
+repo: https://github.com/MikeFox303/umbrel-3d-printing-store
+support: https://github.com/MikeFox303/umbrel-3d-printing-store/issues
+icon: https://raw.githubusercontent.com/maziggy/bambuddy/main/static/img/android-chrome-512x512.png
+port: 8282
+gallery: []
+dependencies:
+  - my3d-bambuddy
+path: ""
+torOnly: false
+releaseNotes: >-
+  Manager 0.2.0: SQLite Backup API вместо сырого копирования БД, SHA-256 и
+  integrity-check snapshot, ручной rollback, recovery незавершённой транзакции,
+  строгая проверка Stable/Beta metadata и безопасное пересоздание контейнера с
+  defaults нового Bambuddy image вместо переноса Cmd/Entrypoint старого image.

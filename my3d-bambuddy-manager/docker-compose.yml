@@ -1,0 +1,34 @@
+version: "3.7"
+services:
+  app_proxy:
+    environment:
+      APP_HOST: my3d-bambuddy-manager_server_1
+      APP_PORT: 8787
+    container_name: my3d-bambuddy-manager_app_proxy_1
+  server:
+    image: python:3.13.15-alpine3.24@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
+    restart: on-failure
+    init: true
+    read_only: true
+    environment:
+      PORT: "8787"
+      PYTHONDONTWRITEBYTECODE: "1"
+      DOCKER_SOCKET: /var/run/docker.sock
+      UMBREL_APP_DATA_ROOT: /umbrel-app-data
+      BAMBUDDY_APP_ID: my3d-bambuddy
+      BAMBUDDY_CONTAINER_NAME: my3d-bambuddy_server_1
+      BAMBUDDY_HEALTH_URL: http://host.docker.internal:8000/health
+      MANAGER_DATA_DIR: /manager-data
+      MAX_SNAPSHOTS: "12"
+      ALLOW_SWITCHING: "true"
+    command: ["python", "/app/server.py"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ${APP_DATA_DIR}/server.py.template:/app/server.py:ro
+      - ${APP_DATA_DIR}/data:/manager-data
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /home/umbrel/umbrel/app-data/my3d-bambuddy:/umbrel-app-data/my3d-bambuddy
+    tmpfs:
+      - /tmp
+    container_name: my3d-bambuddy-manager_server_1

@@ -7,7 +7,9 @@ tagline: Локальное управление принтерами Bambu Lab
 description: >-
   Community App package для официального Bambuddy. Bambuddy — self-hosted
   система управления и мониторинга принтеров Bambu Lab: печать, AMS, камера,
-  архив заданий, Virtual Printer и API-интеграции в локальной сети.
+  архив заданий, Virtual Printer и API-интеграции в локальной сети. Этот пакет
+  устанавливает проверенный bootstrap runtime; последующие проверенные
+  Stable/Beta версии можно применять через отдельный Bambuddy Manager.
 developer: maziggy
 website: https://bambuddy.cool/
 repo: https://github.com/maziggy/bambuddy
@@ -21,6 +23,6 @@ torOnly: false
 releaseNotes: >-
   Официальный upstream Bambuddy 1.2.5.5 по immutable multi-arch digest.
   Сохраняется рабочая конфигурация Umbrel Virtual Printer: network_mode host,
-  APP_HOST 192.168.0.100 и advertise/PASV адреса 192.168.0.100.
-  Последующие стабильные релизы maziggy/bambuddy автоматически проверяются и
-  публикуются в этот Umbrel Store после multi-arch и runtime smoke-тестов.
+  APP_HOST 192.168.0.100 и advertise/PASV адреса 192.168.0.100. Новые upstream
+  Stable/Beta версии сначала проходят Store CI и публикуются как channel
+  metadata; Bambuddy Manager применяет их с snapshot, health-check и rollback.

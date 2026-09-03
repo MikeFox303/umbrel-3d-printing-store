@@ -1,15 +1,15 @@
-name: Sync Bambuddy stable channel
+name: Sync Bambuddy beta channel
 
 on:
   schedule:
-    - cron: '23 */6 * * *'
+    - cron: '53 */6 * * *'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: auto-update-bambuddy-stable
+  group: auto-update-bambuddy-beta
   cancel-in-progress: false
 
 jobs:
@@ -25,31 +25,29 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
-      - name: Resolve latest stable upstream release
+      - name: Resolve latest upstream daily beta
         id: upstream
         shell: bash
         run: |
           set -euo pipefail
 
-          release="$(curl --fail --silent --show-error \
+          releases="$(curl --fail --silent --show-error \
             -H 'Accept: application/vnd.github+json' \
             -H 'Authorization: Bearer ${{ github.token }}' \
-            'https://api.github.com/repos/maziggy/bambuddy/releases/latest')"
+            'https://api.github.com/repos/maziggy/bambuddy/releases?per_page=30')"
+
+          release="$(jq -cer '
+            [ .[]
+              | select(.draft == false and .prerelease == true)
+              | select(.tag_name | test("^v[0-9]+\\.[0-9]+\\.[0-9]+b[0-9]+-daily\\.[0-9]{8}$"))
+            ][0]
+          ' <<<"$releases")"
 
           tag="$(jq -er '.tag_name' <<<"$release")"
-          draft="$(jq -er '.draft' <<<"$release")"
-          prerelease="$(jq -er '.prerelease' <<<"$release")"
           version="${tag#v}"
+          app_version="${version%%-daily.*}"
+          image='ghcr.io/maziggy/bambuddy:daily'
 
-          test "$draft" = false
-          test "$prerelease" = false
-
-          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
-            echo "Refusing non-stable upstream version: $tag" >&2
-            exit 1
-          fi
-
-          image="ghcr.io/maziggy/bambuddy:${version}"
           raw="$(docker buildx imagetools inspect --raw "$image")"
           jq -e '
             [.manifests[].platform | "\(.os)/\(.architecture)"]
@@ -63,59 +61,51 @@ jobs:
           resolved="$(docker buildx imagetools inspect "$immutable" | sed -n 's/^Digest:[[:space:]]*//p' | head -1)"
           test "$resolved" = "$digest"
 
-          current_version="$(jq -r '.version // ""' channels/bambuddy/stable.json 2>/dev/null || true)"
-          current_digest="$(jq -r '.digest // ""' channels/bambuddy/stable.json 2>/dev/null || true)"
+          current_version="$(jq -r '.version // ""' channels/bambuddy/beta.json 2>/dev/null || true)"
+          current_digest="$(jq -r '.digest // ""' channels/bambuddy/beta.json 2>/dev/null || true)"
 
-          echo "Current stable metadata: ${current_version:-<none>} ${current_digest:-<none>}"
-          echo "Latest upstream stable: $version $digest"
-
-          if [[ -n "$current_version" ]]; then
-            highest="$(printf '%s\n%s\n' "$current_version" "$version" | sort -V | tail -1)"
-            if [[ "$highest" != "$version" ]]; then
-              echo "::warning title=Refusing Bambuddy stable downgrade::Store=$current_version upstream-latest=$version"
-              echo "changed=false" >> "$GITHUB_OUTPUT"
-              echo "version=$version" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-          fi
+          echo "Current beta metadata: ${current_version:-<none>} ${current_digest:-<none>}"
+          echo "Latest upstream beta: $version $digest"
 
           if [[ "$current_version" == "$version" && "$current_digest" == "$digest" ]]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "version=$version" >> "$GITHUB_OUTPUT"
-            echo "Store already publishes this tested stable digest."
+            echo "app_version=$app_version" >> "$GITHUB_OUTPUT"
+            echo "Store already publishes this tested beta digest."
             exit 0
           fi
 
           echo "changed=true" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "app_version=$app_version" >> "$GITHUB_OUTPUT"
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
           echo "immutable=$immutable" >> "$GITHUB_OUTPUT"
 
-      - name: Smoke-test stable image on amd64 and arm64
+      - name: Smoke-test beta image on amd64 and arm64
         if: steps.upstream.outputs.changed == 'true'
         shell: bash
         env:
           IMAGE: ${{ steps.upstream.outputs.immutable }}
-          EXPECTED_APP_VERSION: ${{ steps.upstream.outputs.version }}
+          EXPECTED_APP_VERSION: ${{ steps.upstream.outputs.app_version }}
         run: |
           set -euo pipefail
 
           cleanup() {
-            docker rm -f bambuddy-stable-smoke >/dev/null 2>&1 || true
+            docker rm -f bambuddy-beta-smoke >/dev/null 2>&1 || true
           }
           trap cleanup EXIT
 
           for platform in linux/amd64 linux/arm64; do
             cleanup
             arch="${platform##*/}"
-            root="/tmp/bambuddy-stable-${arch}"
+            root="/tmp/bambuddy-beta-${arch}"
             rm -rf "$root"
             mkdir -p "$root/data" "$root/logs"
 
             docker pull --platform "$platform" "$IMAGE"
             docker run --platform "$platform" -d \
-              --name bambuddy-stable-smoke \
-              -p 127.0.0.1:18000:8000 \
+              --name bambuddy-beta-smoke \
+              -p 127.0.0.1:18001:8000 \
               -e TZ=UTC \
               -e PUID=1000 \
               -e PGID=1000 \
@@ -126,53 +116,55 @@ jobs:
 
             healthy=false
             for attempt in $(seq 1 120); do
-              if curl --fail --silent --show-error http://127.0.0.1:18000/health >/dev/null 2>&1; then
+              if curl --fail --silent --show-error http://127.0.0.1:18001/health >/dev/null 2>&1; then
                 healthy=true
                 break
               fi
-              if [[ "$(docker inspect --format '{{.State.Running}}' bambuddy-stable-smoke)" != true ]]; then
+              if [[ "$(docker inspect --format '{{.State.Running}}' bambuddy-beta-smoke)" != true ]]; then
                 break
               fi
               sleep 1
             done
 
             if [[ "$healthy" != true ]]; then
-              docker logs bambuddy-stable-smoke || true
+              docker logs bambuddy-beta-smoke || true
               exit 1
             fi
 
-            actual_app_version="$(docker exec bambuddy-stable-smoke python -c 'from backend.app.core.config import APP_VERSION; print(APP_VERSION)')"
+            actual_app_version="$(docker exec bambuddy-beta-smoke python -c 'from backend.app.core.config import APP_VERSION; print(APP_VERSION)')"
             if [[ "$actual_app_version" != "$EXPECTED_APP_VERSION" ]]; then
-              echo "Refusing mismatched stable image: release expects ${EXPECTED_APP_VERSION}, image reports ${actual_app_version}" >&2
+              echo "Refusing mismatched daily image: GitHub prerelease expects ${EXPECTED_APP_VERSION}, image reports ${actual_app_version}" >&2
               exit 1
             fi
 
             test -f "$root/data/bambuddy.db"
-            docker rm -f bambuddy-stable-smoke >/dev/null
+            docker rm -f bambuddy-beta-smoke >/dev/null
           done
 
-      - name: Revalidate stable head after smoke tests
+      - name: Revalidate beta head after smoke tests
         id: revalidate
         if: steps.upstream.outputs.changed == 'true'
         shell: bash
         env:
           EXPECTED_TAG: v${{ steps.upstream.outputs.version }}
           EXPECTED_DIGEST: ${{ steps.upstream.outputs.digest }}
-          EXPECTED_VERSION: ${{ steps.upstream.outputs.version }}
         run: |
           set -euo pipefail
 
-          release="$(curl --fail --silent --show-error \
+          releases="$(curl --fail --silent --show-error \
             -H 'Accept: application/vnd.github+json' \
             -H 'Authorization: Bearer ${{ github.token }}' \
-            'https://api.github.com/repos/maziggy/bambuddy/releases/latest')"
-          latest_tag="$(jq -er '.tag_name' <<<"$release")"
-          latest_draft="$(jq -er '.draft' <<<"$release")"
-          latest_prerelease="$(jq -er '.prerelease' <<<"$release")"
-          latest_digest="$(docker buildx imagetools inspect "ghcr.io/maziggy/bambuddy:${EXPECTED_VERSION}" | sed -n 's/^Digest:[[:space:]]*//p' | head -1)"
+            'https://api.github.com/repos/maziggy/bambuddy/releases?per_page=30')"
+          latest_tag="$(jq -er '
+            [ .[]
+              | select(.draft == false and .prerelease == true)
+              | select(.tag_name | test("^v[0-9]+\\.[0-9]+\\.[0-9]+b[0-9]+-daily\\.[0-9]{8}$"))
+            ][0].tag_name
+          ' <<<"$releases")"
+          latest_digest="$(docker buildx imagetools inspect ghcr.io/maziggy/bambuddy:daily | sed -n 's/^Digest:[[:space:]]*//p' | head -1)"
 
-          if [[ "$latest_tag" != "$EXPECTED_TAG" || "$latest_draft" != false || "$latest_prerelease" != false || "$latest_digest" != "$EXPECTED_DIGEST" ]]; then
-            echo "::warning title=Bambuddy stable changed during validation::Skipping this publication cycle to avoid stale/mixed channel metadata."
+          if [[ "$latest_tag" != "$EXPECTED_TAG" || "$latest_digest" != "$EXPECTED_DIGEST" ]]; then
+            echo "::warning title=Bambuddy daily changed during validation::Skipping this publication cycle to avoid stale/mixed channel metadata."
             echo "expected tag=$EXPECTED_TAG digest=$EXPECTED_DIGEST"
             echo "current  tag=$latest_tag digest=$latest_digest"
             echo "publish=false" >> "$GITHUB_OUTPUT"
@@ -181,22 +173,19 @@ jobs:
 
           echo "publish=true" >> "$GITHUB_OUTPUT"
 
-      - name: Update stable channel metadata
+      - name: Update beta channel metadata
         if: steps.upstream.outputs.changed == 'true' && steps.revalidate.outputs.publish == 'true'
-        shell: bash
         run: |
-          set -euo pipefail
-          node scripts/sync-bambuddy-stable.mjs \
+          node scripts/sync-bambuddy-beta.mjs \
             '${{ steps.upstream.outputs.version }}' \
             '${{ steps.upstream.outputs.digest }}'
-
-          jq -e '.channel == "stable" and .available == true and (.immutableImage | test("^ghcr.io/maziggy/bambuddy:[0-9.]+@sha256:[0-9a-f]{64}$"))' channels/bambuddy/stable.json >/dev/null
+          jq -e '.available == true and (.immutableImage | test("^ghcr.io/maziggy/bambuddy:daily@sha256:[0-9a-f]{64}$"))' channels/bambuddy/beta.json >/dev/null
 
       - name: Run Store tests
         if: steps.upstream.outputs.changed == 'true' && steps.revalidate.outputs.publish == 'true'
         run: node --test tests/*.test.mjs
 
-      - name: Publish stable channel metadata
+      - name: Publish beta channel metadata
         if: steps.upstream.outputs.changed == 'true' && steps.revalidate.outputs.publish == 'true'
         shell: bash
         env:
@@ -205,8 +194,8 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add channels/bambuddy/stable.json
+          git add channels/bambuddy/beta.json
           git diff --cached --check
           git diff --cached --quiet && exit 0
-          git commit -m "chore: publish Bambuddy stable ${VERSION}"
+          git commit -m "chore: publish Bambuddy beta ${VERSION}"
           git push origin HEAD:main

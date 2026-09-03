@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "channel": "beta",
+  "version": "1.2.6b1-daily.20260830",
+  "releaseTag": "v1.2.6b1-daily.20260830",
+  "image": "ghcr.io/maziggy/bambuddy:daily",
+  "digest": null,
+  "immutableImage": null,
+  "source": "github-prerelease+ghcr-daily",
+  "testedPlatforms": [],
+  "available": false,
+  "note": "Bootstrap metadata. sync-bambuddy-beta workflow resolves :daily to an immutable digest and enables this channel after multi-arch and runtime smoke tests."
+}

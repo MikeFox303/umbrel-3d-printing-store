@@ -23,6 +23,14 @@ jobs:
       - name: Run Store tests
         run: node --test tests/*.test.mjs
 
+      - name: Validate Bambuddy Manager source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile my3d-bambuddy-manager/src/server.py
+          python3 -m unittest discover -s tests -p 'test_bambuddy_manager.py' -v
+          cmp my3d-bambuddy-manager/src/server.py my3d-bambuddy-manager/server.py.template
+
       - name: Require validated immutable image pins and Virtual Printer host network
         shell: bash
         run: |
@@ -30,12 +38,24 @@ jobs:
           grep -Eq '^    image: ghcr\.io/maziggy/bambuddy:[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?@sha256:[0-9a-f]{64}$' my3d-bambuddy/docker-compose.yml
           grep -Eq '^    image: ghcr\.io/mikefox303/filaman-system:.+@sha256:[0-9a-f]{64}$' my3d-filaman/docker-compose.yml
           grep -Eq '^    image: ghcr\.io/donkie/spoolman:0\.26\.1@sha256:[0-9a-f]{64}$' my3d-spoolman/docker-compose.yml
+          grep -Eq '^    image: python:3\.13\.15-alpine3\.24@sha256:[0-9a-f]{64}$' my3d-bambuddy-manager/docker-compose.yml
           grep -Eq '^[[:space:]]*network_mode:[[:space:]]*host([[:space:]]|$)' my3d-bambuddy/docker-compose.yml
           grep -Eq '^[[:space:]]*APP_HOST:[[:space:]]*192\.168\.0\.100([[:space:]]|$)' my3d-bambuddy/docker-compose.yml
           grep -Eq '^[[:space:]]*VIRTUAL_PRINTER_ADVERTISE_ADDRESS:[[:space:]]*192\.168\.0\.100([[:space:]]|$)' my3d-bambuddy/docker-compose.yml
           grep -Eq '^[[:space:]]*VIRTUAL_PRINTER_PASV_ADDRESS:[[:space:]]*192\.168\.0\.100([[:space:]]|$)' my3d-bambuddy/docker-compose.yml
           grep -Eq '^[[:space:]]*-[[:space:]]*NET_BIND_SERVICE([[:space:]]|$)' my3d-bambuddy/docker-compose.yml
           ! grep -Eq 'ghcr\.io/mikefox303/bambuddy|:latest(@|$)|:daily(@|$)' my3d-bambuddy/docker-compose.yml
+          grep -Fq '/var/run/docker.sock:/var/run/docker.sock' my3d-bambuddy-manager/docker-compose.yml
+          ! grep -Fq 'PROXY_AUTH_ADD: "false"' my3d-bambuddy-manager/docker-compose.yml
+          ! grep -Fq "PROXY_AUTH_ADD: 'false'" my3d-bambuddy-manager/docker-compose.yml
+          ! grep -Eq 'PROXY_AUTH_ADD:[[:space:]]*false([[:space:]]|$)' my3d-bambuddy-manager/docker-compose.yml
+
+      - name: Validate channel metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e '.channel == "stable" and .available == true and (.immutableImage | test("^ghcr.io/maziggy/bambuddy:[0-9.]+@sha256:[0-9a-f]{64}$"))' channels/bambuddy/stable.json >/dev/null
+          jq -e '.channel == "beta" and ((.available == false and .immutableImage == null) or (.available == true and (.immutableImage | test("^ghcr.io/maziggy/bambuddy:daily@sha256:[0-9a-f]{64}$"))))' channels/bambuddy/beta.json >/dev/null
 
       - name: Validate Compose files
         shell: bash
@@ -54,6 +74,37 @@ jobs:
           docker compose -f my3d-filaman/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null
           docker compose -f my3d-printbuddy/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null
           docker compose -f my3d-spoolman/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null
+          docker compose -f my3d-bambuddy-manager/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null
+
+      - name: Smoke-test Bambuddy Manager startup
+        shell: bash
+        run: |
+          set -euo pipefail
+          export APP_DATA_DIR=/tmp/bambuddy-manager-smoke
+          rm -rf "$APP_DATA_DIR"
+          mkdir -p "$APP_DATA_DIR/data"
+          cp my3d-bambuddy-manager/server.py.template "$APP_DATA_DIR/server.py.template"
+          sudo mkdir -p /home/umbrel/umbrel/app-data/my3d-bambuddy
+          cat >/tmp/umbrel-app-proxy.yml <<'EOF'
+          services:
+            app_proxy:
+              image: alpine:3.22
+          EOF
+
+          cleanup() {
+            docker compose --project-name bambuddy-manager-smoke -f my3d-bambuddy-manager/docker-compose.yml -f /tmp/umbrel-app-proxy.yml down -v || true
+          }
+          trap cleanup EXIT
+
+          docker compose --project-name bambuddy-manager-smoke -f my3d-bambuddy-manager/docker-compose.yml -f /tmp/umbrel-app-proxy.yml up -d server
+          for attempt in $(seq 1 30); do
+            if docker exec my3d-bambuddy-manager_server_1 python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8787/health', timeout=2)" >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs my3d-bambuddy-manager_server_1 || true
+          exit 1
 
       - name: Smoke-test Spoolman startup
         shell: bash
