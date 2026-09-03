@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-OFFICIAL_IMAGE='ghcr.io/maziggy/bambuddy:1.2.5.5@sha256:dc627d618cc3d3252ae4ab33af74c4679c66a9a06e0e3bbb7aefa32d1a4d4a07'
-ROLLBACK_IMAGE='ghcr.io/mikefox303/bambuddy:1.2.5.5-x2d.204@sha256:0539eb76a64994081a868a30cb854097a0e9a9732dc0d60f05666748fe341743'
+OFFICIAL_IMAGE="${OFFICIAL_IMAGE:-ghcr.io/maziggy/bambuddy:1.2.5.5@sha256:dc627d618cc3d3252ae4ab33af74c4679c66a9a06e0e3bbb7aefa32d1a4d4a07}"
+ROLLBACK_IMAGE="${ROLLBACK_IMAGE:-ghcr.io/mikefox303/bambuddy:1.2.5.5-x2d.73@sha256:9abf0d5bfb612dd1f473a7632f2b7aa404ef06db759e979b388bd7466cc84fb0}"
 SOURCE_DATA="${1:-/home/umbrel/umbrel/app-data/my3d-bambuddy/data}"
 SHADOW_ROOT="${2:-/tmp/bambuddy-official-shadow}"
 SHADOW_PORT="${SHADOW_PORT:-18280}"
@@ -79,8 +79,8 @@ target_db.close()
 PY
 cp "$SHADOW_ROOT/data/bambuddy.db" "$SHADOW_ROOT/bambuddy-before-upstream.db"
 
-# A temporary internal bridge is deliberately NOT umbrel_main_network. It gives the
-# shadow container a unique host port while preventing egress to X2D and Spoolman.
+# Deliberately isolated from X2D/Spoolman. The shadow test validates DB/runtime
+# compatibility only; live Virtual Printer networking is tested separately.
 docker network create --internal "$NETWORK" >/dev/null
 
 echo '== Pulling official immutable image anonymously =='
@@ -139,9 +139,8 @@ print("post-migration tables:", db.execute("SELECT count(*) FROM sqlite_master W
 db.close()
 PY
 
-# Rollback compatibility is checked on a SECOND copy of the migrated shadow data.
-# Production data is never mounted into either container.
-echo '== Checking old production image against migrated DB copy =='
+# Rollback compatibility is checked on a second copy of migrated shadow data.
+echo '== Checking observed live rollback image against migrated DB copy =='
 cp -a "$SHADOW_ROOT/data/." "$SHADOW_ROOT/rollback-data/"
 if ! docker pull "$ROLLBACK_IMAGE"; then
   docker image inspect "$ROLLBACK_IMAGE" >/dev/null || fail 'rollback image is neither pullable nor present locally'
