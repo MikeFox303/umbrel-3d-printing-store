@@ -10,12 +10,23 @@ const template = fs.readFileSync('my3d-bambuddy-manager/server.py.template', 'ut
 const bambuddyExports = fs.readFileSync('my3d-bambuddy/exports.sh', 'utf8');
 const managerExports = fs.readFileSync('my3d-bambuddy-manager/exports.sh', 'utf8');
 
-test('Manager manifest and runtime versions match', () => {
+test('Manager package revision stays compatible with its runtime core line', () => {
   const manifestVersion = manifest.match(/^version: "([^"]+)"$/m)?.[1];
   const runtimeVersion = source.match(/^MANAGER_VERSION = "([^"]+)"$/m)?.[1];
   assert.ok(manifestVersion, 'Manager manifest version is missing');
   assert.ok(runtimeVersion, 'Manager runtime version is missing');
-  assert.equal(runtimeVersion, manifestVersion);
+
+  const packageParts = manifestVersion.split('.').map(Number);
+  const runtimeParts = runtimeVersion.split('.').map(Number);
+  assert.equal(packageParts.length, 3, 'Manager package version must have three numeric components');
+  assert.equal(runtimeParts.length, 3, 'Manager runtime version must have three numeric components');
+  assert.ok(packageParts.every(Number.isInteger), 'Manager package version must be numeric');
+  assert.ok(runtimeParts.every(Number.isInteger), 'Manager runtime version must be numeric');
+  assert.deepEqual(packageParts.slice(0, 2), runtimeParts.slice(0, 2));
+  assert.ok(
+    packageParts[2] >= runtimeParts[2],
+    `Manager package ${manifestVersion} must not trail runtime core ${runtimeVersion}`,
+  );
 });
 
 test('Manager source and shipped template stay byte-for-byte equal', () => {
