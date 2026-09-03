@@ -56,16 +56,25 @@ test('Manager has a path fallback for Bambuddy packages installed before depende
   assert.match(managerExports, /dirname "\$\{EXPORTS_APP_DIR\}"/);
   assert.match(managerExports, /\/my3d-bambuddy"/);
   assert.match(managerExports, /if \[\[ -z "\$\{APP_BAMBUDDY_DATA_DIR:-\}" \]\]/);
+  assert.match(managerExports, /SCRIPT_APP_DATA_ROOTS/);
+  assert.match(managerExports, /jq --exit-status --raw-output --arg app "my3d-bambuddy"/);
   assert.match(managerExports, /APP_BAMBUDDY_DATA_DIR="\$\{APP_BAMBUDDY_APP_DIR\}\/data"/);
   assert.doesNotMatch(managerExports, /\/home\/umbrel\/umbrel/);
   assert.doesNotMatch(managerExports, /\/state\/default\/persist/);
+
+  const baseLegacyEnv = {
+    ...process.env,
+    EXPORTS_APP_DIR: '/srv/umbrel/app-data/my3d-bambuddy-manager',
+    APP_BAMBUDDY_APP_DIR: '',
+    APP_BAMBUDDY_DATA_DIR: '',
+  };
 
   const legacy = spawnSync(
     'bash',
     ['-c', 'source my3d-bambuddy-manager/exports.sh; printf "%s\\n%s\\n" "$APP_BAMBUDDY_APP_DIR" "$APP_BAMBUDDY_DATA_DIR"'],
     {
       encoding: 'utf8',
-      env: {...process.env, EXPORTS_APP_DIR: '/srv/umbrel/app-data/my3d-bambuddy-manager'},
+      env: {...baseLegacyEnv, SCRIPT_APP_DATA_ROOTS: ''},
     },
   );
   assert.equal(legacy.status, 0, legacy.stderr);
@@ -74,7 +83,27 @@ test('Manager has a path fallback for Bambuddy packages installed before depende
     '/srv/umbrel/app-data/my3d-bambuddy/data',
   ]);
 
-  const relocated = spawnSync(
+  const legacyRelocated = spawnSync(
+    'bash',
+    ['-c', 'source my3d-bambuddy-manager/exports.sh; printf "%s\\n%s\\n" "$APP_BAMBUDDY_APP_DIR" "$APP_BAMBUDDY_DATA_DIR"'],
+    {
+      encoding: 'utf8',
+      env: {
+        ...baseLegacyEnv,
+        SCRIPT_APP_DATA_ROOTS: JSON.stringify({
+          'my3d-bambuddy': '/mnt/external/Apps/my3d-bambuddy/data',
+          'my3d-bambuddy-manager': '/srv/umbrel/app-data/my3d-bambuddy-manager/data',
+        }),
+      },
+    },
+  );
+  assert.equal(legacyRelocated.status, 0, legacyRelocated.stderr);
+  assert.deepEqual(legacyRelocated.stdout.trim().split('\n'), [
+    '/srv/umbrel/app-data/my3d-bambuddy',
+    '/mnt/external/Apps/my3d-bambuddy/data',
+  ]);
+
+  const dependencyRelocated = spawnSync(
     'bash',
     ['-c', 'source my3d-bambuddy-manager/exports.sh; printf "%s\\n%s\\n" "$APP_BAMBUDDY_APP_DIR" "$APP_BAMBUDDY_DATA_DIR"'],
     {
@@ -82,13 +111,16 @@ test('Manager has a path fallback for Bambuddy packages installed before depende
       env: {
         ...process.env,
         EXPORTS_APP_DIR: '/srv/umbrel/app-data/my3d-bambuddy-manager',
+        SCRIPT_APP_DATA_ROOTS: JSON.stringify({
+          'my3d-bambuddy': '/mnt/runtime-map/should-not-win',
+        }),
         APP_BAMBUDDY_APP_DIR: '/srv/umbrel/app-data/my3d-bambuddy',
         APP_BAMBUDDY_DATA_DIR: '/mnt/external/Apps/my3d-bambuddy/data',
       },
     },
   );
-  assert.equal(relocated.status, 0, relocated.stderr);
-  assert.deepEqual(relocated.stdout.trim().split('\n'), [
+  assert.equal(dependencyRelocated.status, 0, dependencyRelocated.stderr);
+  assert.deepEqual(dependencyRelocated.stdout.trim().split('\n'), [
     '/srv/umbrel/app-data/my3d-bambuddy',
     '/mnt/external/Apps/my3d-bambuddy/data',
   ]);
