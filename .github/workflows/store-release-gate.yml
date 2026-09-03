@@ -55,11 +55,12 @@ jobs:
           grep -Fq 'APP_BAMBUDDY_DATA_DIR="${APP_BAMBUDDY_APP_DIR}/data"' my3d-bambuddy-manager/exports.sh
           ! grep -Eq '/home/umbrel|/state/default/persist' my3d-bambuddy-manager/exports.sh
 
-          grep -Fq 'source: ${APP_BAMBUDDY_APP_DIR}' my3d-bambuddy-manager/docker-compose.yml
-          grep -Fq 'target: /umbrel-app-data/my3d-bambuddy' my3d-bambuddy-manager/docker-compose.yml
-          grep -Fq 'source: ${APP_BAMBUDDY_DATA_DIR}' my3d-bambuddy-manager/docker-compose.yml
-          grep -Fq 'target: /umbrel-app-data/my3d-bambuddy/data' my3d-bambuddy-manager/docker-compose.yml
-          test "$(grep -Ec '^[[:space:]]*create_host_path:[[:space:]]*false([[:space:]]|$)' my3d-bambuddy-manager/docker-compose.yml)" -eq 2
+          # umbrelOS 1.7.4 patchComposeFile() calls String.replace() on each
+          # volume item, so Manager volumes must remain short/string syntax.
+          grep -Fq '${APP_BAMBUDDY_APP_DIR}:/umbrel-app-data/my3d-bambuddy' my3d-bambuddy-manager/docker-compose.yml
+          grep -Fq '${APP_BAMBUDDY_DATA_DIR}:/umbrel-app-data/my3d-bambuddy/data' my3d-bambuddy-manager/docker-compose.yml
+          ! grep -Eq '^[[:space:]]*-[[:space:]]*type:[[:space:]]*bind([[:space:]]|$)' my3d-bambuddy-manager/docker-compose.yml
+          ! grep -Eq '^[[:space:]]*(source|target|create_host_path):' my3d-bambuddy-manager/docker-compose.yml
           ! grep -Fq '/home/umbrel/umbrel/app-data/my3d-bambuddy' my3d-bambuddy-manager/docker-compose.yml
           ! grep -Fq '/state/default/persist' my3d-bambuddy-manager/docker-compose.yml
           ! grep -Fq 'PROXY_AUTH_ADD: "false"' my3d-bambuddy-manager/docker-compose.yml
