@@ -2,167 +2,164 @@
 
 Date: 2026-09-03
 
-Status: **release candidate only — do not merge/publish until shadow + physical X2D/Spoolman gates pass**.
+Status: **release candidate only — keep PR draft until real X2D + Virtual Printer + Spoolman accounting acceptance passes**.
 
-## Fixed reference points
+## Goal
 
-### Selected upstream
+Move the Umbrel Bambuddy runtime from the downstream `MikeFox303/bambuddy` fork to the official `maziggy/bambuddy v1.2.5.5` image while preserving the working X2D Virtual Printer network setup and using Spoolman as the authoritative inventory/accounting backend.
 
-- Latest stable checked at migration start: `maziggy/bambuddy v1.2.5.5`
-- Stable tag commit: `c331a3aedf335e97e423add7463f715299fd89b0`
-- Upstream `main` observed during audit: `2d16ed9ad01ec705d7e746d2ee48797ac20218c1`
-- Fork `MikeFox303/bambuddy main` observed during audit: `f26ce2df334841cc8ead0c0933fdcb01bf33ba4c`
-- Fork vs stable: 55 commits ahead, 0 behind at audit time.
-- Fork vs current upstream main: diverged; merge base `1e2951899188ae0dff75ae221db03fd58274eda3`.
-
-`v1.2.5.5` is intentionally selected instead of `daily`, `latest`, or upstream `main`. No known open issue found during the audit establishes a release-blocking X2D + Spoolman accounting regression in 1.2.5.5. Physical accounting tests below are still mandatory.
-
-### Official image pin
+## Selected official runtime
 
 ```text
-ghcr.io/maziggy/bambuddy:1.2.5.5@sha256:dc627d618cc3d3252ae4ab33af74c4679c66a9a06e0e3bbb7aefa32d1a4d4a07
+VERSION=1.2.5.5
+IMAGE=ghcr.io/maziggy/bambuddy:1.2.5.5@sha256:dc627d618cc3d3252ae4ab33af74c4679c66a9a06e0e3bbb7aefa32d1a4d4a07
 ```
 
-Observed platform manifests:
+Observed platform manifests during the migration audit:
 
 ```text
 linux/amd64 sha256:d6a29fa4d379957d7dec39984ca495e97e367f9010ec482795fb491d8a33a381
 linux/arm64 sha256:e6ebd1f258d3588490f03b9d60da865414d86b5d1ac21de866d6303ea2c3c271
 ```
 
-The Umbrel package uses the multi-architecture manifest digest. It does not rebuild upstream under our GHCR namespace.
+The Store consumes the official multi-arch image directly. It does not rebuild Bambuddy under the `MikeFox303` namespace.
 
-## Rollback snapshot before migration
+## Actual live rollback baseline
 
-These values describe production before any migration PR is merged:
+The Raspberry Pi inspection superseded the earlier repository-only assumption about the installed fork version.
 
-```text
-CURRENT_WORKING_VERSION=1.2.5.5-x2d.204
-CURRENT_WORKING_IMAGE=ghcr.io/mikefox303/bambuddy:1.2.5.5-x2d.204
-CURRENT_WORKING_DIGEST=sha256:0539eb76a64994081a868a30cb854097a0e9a9732dc0d60f05666748fe341743
-CURRENT_WORKING_MAIN_SHA=115d417f200ba0a3bc699d27bb5a63b7b4434da9
-```
-
-The old image/digest must not be deleted while this migration is in acceptance.
-
-## Network invariants
-
-The current working Umbrel networking is the reference configuration. This migration MUST NOT add or require:
-
-- `network_mode: host`
-- Virtual Printer Proxy Mode
-- MQTT/FTPS proxy changes
-- changes to Umbrel routing
-- X2D IP changes
-- LAN Only / Developer Mode changes
-- Tailscale/host-socket mounts for Virtual Printer
-
-The RC keeps the existing `app_proxy -> server:8000`, `PUID=1000`, `PGID=1000`, `/app/data`, and `/app/logs` packaging unchanged.
-
-## Downstream audit classification
-
-### A. Already upstream — delete from production fork dependency
-
-- Upstream stable core through `v1.2.5.5` is now consumed directly from the official image.
-- Fork commits that merely sync/copy upstream commits are not downstream requirements.
-- Upstream already owns the Spoolman inventory implementation, `spoolman_slot_assignments`, AMS slot APIs, tag/fingerprint handling, print usage tracking, failed/cancelled-print controls, archive handling for jobs Bambuddy did not dispatch, dual-nozzle/X2D support, FTPS, camera, and model recognition.
-- Upstream-main-only CI/dependency commits after stable are not reasons to use `main`; they wait for the next stable.
-
-### B. FilaMan-only — remove from runtime
-
-Do not reapply these to official Bambuddy:
-
-- `backend/app/api/routes/filaman_usage.py`
-- durable FilaMan WebSocket/usage replay ledger
-- FilaMan inventory-only assignment policy
-- FilaMan reconciliation logic
-- FilaMan-specific API endpoints
-- FilaMan-oriented aggregate usage fallback
-- fork wiring whose purpose is to install the above at startup
-
-The fork's `fork_safety.py` explicitly describes itself as compatibility protection where the downstream FilaMan/X2D inventory extension interacts with upstream Spoolman mode. That is not evidence that clean upstream Spoolman requires the patch.
-
-### C. Umbrel / release infrastructure — keep outside Bambuddy core
-
-Keep the useful engineering, but in `umbrel-3d-printing-store`:
-
-- immutable digest pinning
-- anonymous GHCR pull validation
-- amd64/arm64 runtime smoke tests
-- Compose/manifest validation
-- shadow DB preflight
-- rollback snapshot and compatibility test
-- release-candidate PR workflow
-- stale-workflow protection
-- health checks
-
-The former workflow that automatically published `MikeFox303/bambuddy` X2D builds is replaced by a read-only upstream-stable checker. It cannot push to `main`.
-
-### D. Generic X2D bugfix absent upstream — no proven blocker yet
-
-No fork-only X2D core patch has been proven necessary for **clean official 1.2.5.5 + Spoolman** during repository audit.
-
-The downstream aggregate fallback and inventory policies were developed around the FilaMan/inventory-only extension. They are therefore rejected by default for the new runtime. If a physical gate below fails, reproduce it on official upstream first and isolate the smallest generic X2D fix with an upstream-compatible test before carrying any patch.
-
-### E. Generic Spoolman bugfix absent upstream — candidate only, not carried
-
-The fork contains guards intended to prevent stale internal-inventory assignments from affecting Spoolman mode. Those guards are coupled to the downstream inventory-only/FilaMan extension, while official upstream already maintains a dedicated `spoolman_slot_assignments` model/API.
-
-Decision: **do not carry the guard into the RC**. The mandatory restart, Bambu Studio, single-material, multi-material and cancelled-print tests are the proof gate. If official upstream fails one of those tests, open an upstream-compatible bug/test rather than silently restoring the fork.
-
-### F. RU/UK localization — upstream PR candidate, non-blocking
-
-Do not ship large fork locale files in the runtime. Preserve quality corrections as a separate upstream contribution, including at least:
-
-Russian:
+The real working runtime observed on the device is:
 
 ```text
-Не активно -> Неактивно
-многостольный -> многопластинный
+IMAGE=ghcr.io/mikefox303/bambuddy:1.2.5.5-x2d.73@sha256:9abf0d5bfb612dd1f473a7632f2b7aa404ef06db759e979b388bd7466cc84fb0
+NETWORK=host
+APP_HOST=192.168.0.100
+X2D_IP=192.168.0.151
 ```
 
-Ukrainian:
+This exact image is the physical rollback target for this acceptance run.
+
+## Required Virtual Printer networking
+
+`network_mode: host` is intentional and must remain.
+
+The host mode was created for Virtual Printer and is part of the working configuration, not a temporary migration artifact.
+
+Required RC invariants:
+
+```yaml
+app_proxy:
+  environment:
+    APP_HOST: 192.168.0.100
+    APP_PORT: 8000
+
+server:
+  network_mode: host
+  cap_add:
+    - NET_BIND_SERVICE
+  environment:
+    VIRTUAL_PRINTER_ADVERTISE_ADDRESS: 192.168.0.100
+    VIRTUAL_PRINTER_PASV_ADDRESS: 192.168.0.100
+```
+
+Do not change as part of this migration:
+
+- `network_mode: host`;
+- Raspberry Pi host IP `192.168.0.100`;
+- X2D IP `192.168.0.151`;
+- current LAN Only / Developer Mode state;
+- Virtual Printer advertise/PASV addressing;
+- Umbrel host routing;
+- X2D MQTT/FTPS/camera routing.
+
+The official Bambuddy `v1.2.5.5` Docker Compose itself supports Linux host mode, `NET_BIND_SERVICE`, and the `VIRTUAL_PRINTER_ADVERTISE_ADDRESS` / `VIRTUAL_PRINTER_PASV_ADDRESS` variables.
+
+## Runtime change policy
+
+For the live RC, the installed compose must remain byte-for-byte equivalent except for the Bambuddy image reference.
+
+Expected change:
 
 ```text
-за умовчанням -> за замовчуванням
-Тестове підключення -> Перевірити підключення
-Продавець -> Виробник
+FROM:
+ghcr.io/mikefox303/bambuddy:1.2.5.5-x2d.73@sha256:9abf0d5bfb612dd1f473a7632f2b7aa404ef06db759e979b388bd7466cc84fb0
+
+TO:
+ghcr.io/maziggy/bambuddy:1.2.5.5@sha256:dc627d618cc3d3252ae4ab33af74c4679c66a9a06e0e3bbb7aefa32d1a4d4a07
 ```
 
-Translation merge is not a runtime migration gate.
+The live migration helper `scripts/bambuddy-live-rc.sh` enforces this single-image-difference rule before restarting through Umbrel.
 
-## Container compatibility contract
+## Downstream fork disposition
 
-The official `v1.2.5.5` Dockerfile matches the existing Umbrel package contract:
+### Consume upstream directly
 
-- configurable `PORT`, default `8000`
-- `PUID` / `PGID` handled by the official entrypoint
-- `DATA_DIR=/app/data`
-- `LOG_DIR=/app/logs`
-- `/health` Docker health endpoint
-- image exposes required Bambuddy service ports internally but the Umbrel package only proxies port 8000
+Official upstream already owns the normal Bambuddy features required by this migration, including X2D/dual-nozzle handling, printer telemetry, FTPS/camera support, AMS handling, Spoolman assignments and usage tracking.
 
-No production networking changes are required by the image.
+### Do not carry FilaMan-only runtime code
+
+Do not reapply downstream code whose purpose was the FilaMan integration, including:
+
+- FilaMan usage API routes;
+- FilaMan durable replay ledger;
+- FilaMan inventory-only assignment policy;
+- FilaMan reconciliation;
+- FilaMan-specific aggregate usage fallback;
+- fork startup wiring whose only purpose is to install the above.
+
+Spoolman is the intended inventory/accounting owner after migration.
+
+### Keep Store/release safeguards
+
+Retain in `umbrel-3d-printing-store`:
+
+- immutable digest pinning;
+- amd64/arm64 runtime smoke tests;
+- anonymous image pull checks;
+- compose validation;
+- shadow DB migration preflight;
+- exact physical rollback baseline;
+- live RC helper with backup and automatic rollback;
+- read-only upstream stable checking;
+- no direct auto-publishing to `main`.
+
+### RU/UK localization
+
+Localization improvements are a separate upstream contribution and are not a runtime migration blocker.
+
+## Completed physical preflight evidence
+
+The following was run on the real Raspberry Pi and passed:
+
+- [x] production SQLite online-copy shadow migration;
+- [x] `SHADOW_PREFLIGHT=PASS`;
+- [x] official `1.2.5.5` starts against the copied production DB;
+- [x] SQLite `quick_check=ok`;
+- [x] 83 tables before and after the official shadow start;
+- [x] official container clean stop, exit code `0`;
+- [x] old rollback compatibility check;
+- [x] actual live `x2d.73` image starts against the official-migrated DB copy;
+- [x] actual `x2d.73` rollback container clean stop, exit code `0`;
+- [x] host -> X2D `8883` MQTT reachable;
+- [x] host -> X2D `990` FTPS reachable;
+- [x] host -> X2D `322` camera/RTSPS reachable;
+- [x] host -> X2D `6000` camera/live-view reachable;
+- [x] official image from `umbrel_main_network` can also reach all four X2D ports;
+- [x] official image from `umbrel_main_network` can resolve/reach Spoolman.
+
+The bridge-network connectivity result is useful diagnostic evidence only. It does **not** justify removing host mode because Virtual Printer requires the existing host-network arrangement.
 
 ## Shadow DB preflight
 
-Run before installing the RC:
+Script:
 
 ```bash
-cd /path/to/umbrel-3d-printing-store
 sudo bash scripts/bambuddy-shadow-preflight.sh
 ```
 
-The script:
+Default rollback image is the observed live `x2d.73` digest. `ROLLBACK_IMAGE` remains overrideable for future acceptance runs.
 
-1. opens the production SQLite DB read-only;
-2. creates an online SQLite backup into `/tmp/bambuddy-official-shadow`;
-3. never mounts production `/data` into a test container;
-4. starts the official image on a separate container/name/host port;
-5. uses a temporary **internal** Docker bridge, not `host` and not `umbrel_main_network`, so shadow startup cannot contact X2D or Spoolman;
-6. validates `/health`, clean shutdown and SQLite `quick_check`;
-7. starts the current production image against a second copy of the migrated shadow DB;
-8. blocks release if rollback-image compatibility fails.
+The shadow test intentionally uses an internal Docker network and copies of production data. It does not test Virtual Printer and never mounts the production DB into a test container.
 
 Required result:
 
@@ -172,160 +169,183 @@ OFFICIAL_EXIT_CODE=0
 ROLLBACK_EXIT_CODE=0
 ```
 
-Keep `official-container.log`, `rollback-container.log`, `bambuddy-before-upstream.db`, and the migrated shadow DB as migration evidence. Do not publish if startup migration fails or rollback compatibility fails.
+## Live RC helper
 
-## Physical X2D + Spoolman acceptance checklist
+Script:
 
-These tests cannot be truthfully replaced by CI because they require the real X2D, AMS 2 Pro, current Spoolman DB, real tray telemetry and real print completion events.
-
-### 1. Connectivity / UI
-
-- [ ] Umbrel app opens through port 8280 / app proxy.
-- [ ] X2D reports model `X2D / N6` and Online.
-- [ ] MQTT status is live.
-- [ ] FTPS operations required by normal Bambuddy use work.
-- [ ] RTSPS camera opens and recovers after restart.
-- [ ] Temperatures, fans and chamber data update.
-- [ ] AMS 2 Pro slots/trays are correct.
-- [ ] Maintenance and print history load.
-- [ ] No Virtual Printer / Proxy Mode is enabled as part of this migration.
-
-### 2. Spoolman mode and persistence
-
-Record all assigned Spoolman IDs before testing.
-
-- [ ] Bambuddy connects to the current Spoolman instance.
-- [ ] Spools are visible.
-- [ ] Every AMS slot points to the intended Spoolman spool ID.
-- [ ] Internal Inventory does not appear as an active assignment source while Spoolman mode is active.
-- [ ] Restart Bambuddy; assignments remain identical.
-- [ ] Restart Spoolman; Bambuddy reconnects and assignments remain identical.
-- [ ] No stale assignment is resurrected from the former internal/FilaMan mode.
-
-### 3. Single-material accounting — PETG
-
-Before print record:
-
-```text
-Spoolman spool ID:
-remaining weight:
-AMS unit/tray:
-material:
-color:
+```bash
+sudo bash scripts/bambuddy-live-rc.sh
 ```
 
-Print a small one-colour PETG object.
+The helper is designed for the currently observed Raspberry Pi baseline and performs:
 
-After completion:
+1. verifies the running image is exactly `x2d.73` by immutable digest;
+2. verifies host networking and Virtual Printer compose invariants;
+3. verifies current Bambuddy health;
+4. creates an online SQLite backup and compose/manifest/settings backup;
+5. replaces only the Bambuddy image reference;
+6. pulls the official immutable image;
+7. restarts through `umbreld client apps.restart.mutate`;
+8. requires the official image to become healthy;
+9. requires host networking to remain enabled;
+10. verifies app-proxy health;
+11. verifies X2D ports `8883`, `990`, `322`, `6000` from the actual live container;
+12. runs SQLite `quick_check` on production;
+13. automatically restores the prior compose and pre-RC DB if a technical gate fails.
 
-- [ ] Bambuddy print history contains the job.
-- [ ] Bambuddy usage is non-zero and plausible.
-- [ ] exactly the intended PETG Spoolman spool decreased;
-- [ ] no other spool decreased;
-- [ ] the job was not charged twice;
-- [ ] a Bambuddy restart does not create a second debit.
+Successful technical result:
 
-### 4. Mandatory multi-material accounting — PETG model + PLA support interface
+```text
+LIVE_RC=PASS
+NETWORK=host
+Virtual Printer host-network compose was preserved; only the Bambuddy image changed.
+```
 
-Use two different physical/Spoolman spools in AMS 2 Pro and record both IDs/weights before print.
+The helper does **not** publish the Store or merge the PR.
 
-- [ ] PETG model usage is charged only to the PETG spool.
-- [ ] PLA support-interface usage is charged only to the PLA spool.
-- [ ] total usage is not collapsed onto one spool.
-- [ ] no positional AMS mapping error occurs.
-- [ ] tray-change history matches actual material changes.
-- [ ] after completion and restart, both Spoolman weights remain consistent.
+## Remaining live acceptance
 
-This is the highest-priority release gate.
+### Connectivity and UI
 
-### 5. Bambu Studio initiated print / no local 3MF assumption
+- [ ] Umbrel app opens through port `8280`;
+- [ ] X2D reports `X2D / N6` and Online;
+- [ ] live MQTT telemetry updates;
+- [ ] FTPS-dependent functions work;
+- [ ] camera opens and recovers after restart;
+- [ ] temperatures/fans/chamber telemetry updates;
+- [ ] AMS 2 Pro slots/trays are correct;
+- [ ] maintenance/history load correctly.
 
-Start a small print from Bambu Studio rather than Bambuddy.
+### Virtual Printer — mandatory
 
-- [ ] Bambuddy discovers the running job.
-- [ ] the job enters history.
-- [ ] the active spool is resolved from reliable printer/tray/job telemetry rather than guessed positionally when better data exists.
-- [ ] the correct Spoolman spool is debited once.
+- [ ] existing Virtual Printer configuration is still present;
+- [ ] Virtual Printer starts successfully under official Bambuddy;
+- [ ] Bambu Studio can see/use the Virtual Printer as expected;
+- [ ] MQTT Virtual Printer endpoint works;
+- [ ] FTP upload/control works;
+- [ ] passive data transfer works;
+- [ ] camera/proxy behavior used by the configured Virtual Printer still works;
+- [ ] no new host ports conflict with other Umbrel services.
 
-### 6. Failed / cancelled print
+A failure here blocks publication even if normal printer monitoring works.
 
-Set/check Bambuddy's `Report partial usage for failed/cancelled prints` setting before the test, then start a small print and cancel after measurable extrusion.
+### Spoolman mode and persistence
 
-- [ ] behavior matches that setting.
-- [ ] if enabled, only the partial usage is reported.
-- [ ] if disabled, no unexpected partial debit is made.
-- [ ] restart/recovery does not duplicate the debit.
+Before tests, record the exact assigned Spoolman IDs.
 
-### 7. AMS Filament Backup
+- [ ] Bambuddy connects to the current Spoolman instance;
+- [ ] spools are visible;
+- [ ] every AMS slot maps to the intended Spoolman spool ID;
+- [ ] internal Inventory is not the active assignment owner in Spoolman mode;
+- [ ] restart Bambuddy and verify assignments are identical;
+- [ ] restart Spoolman and verify reconnect + identical assignments;
+- [ ] no stale FilaMan/internal assignment is resurrected.
 
-Only perform when a safe small test can intentionally trigger backup-spool switching.
+### Single-material PETG accounting
 
-- [ ] Bambuddy observes the tray switch.
-- [ ] it does not debit all usage from the original spool.
-- [ ] if upstream cannot attribute usage safely, release is blocked; do not add a positional guess.
+- [ ] record PETG spool ID and remaining weight before print;
+- [ ] print a small PETG object;
+- [ ] job appears in Bambuddy history;
+- [ ] exactly the intended PETG Spoolman spool decreases;
+- [ ] no other spool decreases;
+- [ ] debit is not duplicated after Bambuddy restart.
 
-### 8. External spool IDs
+### PETG model + PLA support interface — highest priority
 
-When external tray behavior is exercised:
+- [ ] record both Spoolman IDs/weights before print;
+- [ ] PETG model usage is charged to PETG spool only;
+- [ ] PLA support-interface usage is charged to PLA spool only;
+- [ ] usage is not collapsed onto one spool;
+- [ ] AMS/tray mapping follows the real material changes;
+- [ ] restart does not alter or duplicate either debit.
 
-- [ ] global tray `254` is handled as an external spool when genuinely active.
-- [ ] idle `255` is never interpreted as a real active spool.
-- [ ] second external path / model-specific `255` semantics are validated from real X2D telemetry before any debit is allowed.
+### Bambu Studio initiated print
+
+- [ ] start a small real print from Bambu Studio;
+- [ ] Bambuddy discovers it;
+- [ ] job reaches history;
+- [ ] correct Spoolman spool is debited exactly once.
+
+### Cancelled/failed print
+
+- [ ] confirm `spoolman_report_partial_usage` setting;
+- [ ] cancel a small print after measurable extrusion;
+- [ ] usage behavior matches the configured setting;
+- [ ] no duplicate debit after restart/recovery.
+
+### AMS Filament Backup
+
+Only perform with a safe small test.
+
+- [ ] tray switch is observed;
+- [ ] all usage is not incorrectly assigned to the original spool;
+- [ ] ambiguous attribution blocks release rather than guessing positionally.
+
+### External tray semantics
+
+When exercised on the real X2D:
+
+- [ ] active external global tray `254` is handled correctly;
+- [ ] idle `tray_now=255` does not create a false debit;
+- [ ] any model-specific second-external `255` mapping is validated from actual telemetry before debit.
 
 ## CI gates
 
-Before merge all automatic checks must pass:
+The release candidate must keep these green:
 
-- Node release-helper tests
-- Compose validation
-- official Bambuddy immutable image regex
-- explicit prohibition of `network_mode: host` in Bambuddy package
-- anonymous official GHCR pull
-- `linux/amd64` runtime start + `/health`
-- `linux/arm64` runtime start + `/health` under QEMU
-- PUID/PGID volume ownership check
-- Spoolman startup smoke test
-
-The scheduled Bambuddy updater is read-only. A newer upstream stable produces a warning only; it is never auto-published. Every future stable must get a new acceptance PR and immutable digest.
+- Store Node tests;
+- shell syntax for shadow/live migration helpers;
+- immutable official Bambuddy image pin;
+- mandatory `network_mode: host`;
+- mandatory `APP_HOST=192.168.0.100`;
+- mandatory Virtual Printer advertise/PASV addresses;
+- mandatory `NET_BIND_SERVICE`;
+- Compose validation;
+- anonymous official image pull;
+- `linux/amd64` runtime startup + `/health`;
+- `linux/arm64` runtime startup + `/health` under QEMU;
+- PUID/PGID volume ownership validation;
+- Spoolman startup smoke test.
 
 ## Release decision
 
-Merge/publish only after all of these are recorded as PASS:
+Do not mark PR #9 ready, merge, or publish until the remaining real-device gates pass.
+
+Minimum publication gate:
 
 ```text
 CI
 shadow migration
-rollback compatibility
-X2D connectivity
-AMS 2 Pro
-camera
-Spoolman reconnect/persistence
+x2d.73 rollback compatibility
+live official RC
+Virtual Printer
+X2D + AMS 2 Pro
+Spoolman assignments/reconnect
 single PETG accounting
 PETG + PLA support accounting
 Bambu Studio initiated accounting
 cancelled-print accounting
 ```
 
-Until then `main` remains the current `1.2.5.5-x2d.204` production package.
+## Rollback
 
-## Rollback after eventual publication
+Physical rollback target for this acceptance run:
 
-If official stable proves bad after release:
+```text
+ghcr.io/mikefox303/bambuddy:1.2.5.5-x2d.73@sha256:9abf0d5bfb612dd1f473a7632f2b7aa404ef06db759e979b388bd7466cc84fb0
+network_mode: host
+APP_HOST: 192.168.0.100
+```
 
-1. stop/recreate only the Bambuddy Community App using the recorded old compose/image digest;
-2. restart Bambuddy;
-3. if the preflight proved the migrated DB backward compatible, retain the DB;
-4. if a future upstream release introduces a non-backward-compatible migration, restore the pre-upgrade DB snapshot together with the old image.
-
-No networking rollback should be necessary because this migration does not change networking.
+The old fork repository/image must remain available until official runtime acceptance is complete.
 
 ## Fate of `MikeFox303/bambuddy`
 
-Do not delete the repository. After production migration classify/retain it as:
+After successful migration, keep the repository as:
 
-- historical rollback reference;
+- rollback/history reference;
 - staging area for clean upstream PRs;
 - archive of FilaMan-only work;
-- source of localization improvements.
+- source of localization contributions.
 
-It must no longer be the normal production runtime once this migration is accepted.
+It should stop being the normal production runtime only after the real acceptance checklist is complete.
