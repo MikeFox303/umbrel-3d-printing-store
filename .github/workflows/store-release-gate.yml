@@ -84,13 +84,18 @@ jobs:
           mkdir -p "$APP_DATA_DIR/data"
           cp my3d-bambuddy-manager/server.py.template "$APP_DATA_DIR/server.py.template"
           sudo mkdir -p /home/umbrel/umbrel/app-data/my3d-bambuddy
+          cat >/tmp/umbrel-app-proxy.yml <<'EOF'
+          services:
+            app_proxy:
+              image: alpine:3.22
+          EOF
 
           cleanup() {
-            docker compose --project-name bambuddy-manager-smoke -f my3d-bambuddy-manager/docker-compose.yml down -v || true
+            docker compose --project-name bambuddy-manager-smoke -f my3d-bambuddy-manager/docker-compose.yml -f /tmp/umbrel-app-proxy.yml down -v || true
           }
           trap cleanup EXIT
 
-          docker compose --project-name bambuddy-manager-smoke -f my3d-bambuddy-manager/docker-compose.yml up -d server
+          docker compose --project-name bambuddy-manager-smoke -f my3d-bambuddy-manager/docker-compose.yml -f /tmp/umbrel-app-proxy.yml up -d server
           for attempt in $(seq 1 30); do
             if docker exec my3d-bambuddy-manager_server_1 python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8787/health', timeout=2)" >/dev/null 2>&1; then
               exit 0
