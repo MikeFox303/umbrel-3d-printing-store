@@ -29,10 +29,12 @@ jobs:
           set -euo pipefail
           bash -n scripts/bambuddy-shadow-preflight.sh
           bash -n scripts/bambuddy-live-rc.sh
+          bash -n scripts/bambuddy-live-verify.sh
           bash -n tests/bambuddy-live-rc-mock.sh
           grep -Fq '1.2.5.5-x2d.73@sha256:9abf0d5bfb612dd1f473a7632f2b7aa404ef06db759e979b388bd7466cc84fb0' scripts/bambuddy-shadow-preflight.sh
           grep -Fq '1.2.5.5-x2d.73@sha256:9abf0d5bfb612dd1f473a7632f2b7aa404ef06db759e979b388bd7466cc84fb0' scripts/bambuddy-live-rc.sh
           grep -Fq 'network_mode: host' scripts/bambuddy-live-rc.sh
+          test "$(grep -Fc 'docker exec -i "$SERVER" python -' scripts/bambuddy-live-rc.sh)" -ge 2
 
       - name: Test live RC success and automatic rollback
         shell: bash
