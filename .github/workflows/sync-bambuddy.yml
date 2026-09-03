@@ -99,6 +99,7 @@ jobs:
 
           grep -Eq '^    image: ghcr\.io/maziggy/bambuddy:${{ steps.upstream.outputs.version }}@sha256:[0-9a-f]{64}$' my3d-bambuddy/docker-compose.yml
           grep -Fxq 'version: "${{ steps.upstream.outputs.version }}"' my3d-bambuddy/umbrel-app.yml
+          jq -e '.channel == "stable" and .available == true and (.immutableImage | test("^ghcr.io/maziggy/bambuddy:[0-9.]+@sha256:[0-9a-f]{64}$"))' channels/bambuddy/stable.json >/dev/null
           ! grep -Eq 'ghcr\.io/mikefox303/bambuddy|:latest(@|$)|:daily(@|$)' my3d-bambuddy/docker-compose.yml
 
       - name: Run Store tests
@@ -187,7 +188,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add my3d-bambuddy/docker-compose.yml my3d-bambuddy/umbrel-app.yml
+          git add my3d-bambuddy/docker-compose.yml my3d-bambuddy/umbrel-app.yml channels/bambuddy/stable.json
           git diff --cached --check
           git diff --cached --quiet && exit 0
           git commit -m "chore: update Bambuddy to ${VERSION}"
