@@ -33,7 +33,10 @@ jobs:
           grep -Eq '^    image: ghcr\.io/maziggy/bambuddy:[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?@sha256:[0-9a-f]{64}$' my3d-bambuddy/docker-compose.yml
           grep -Eq '^    image: ghcr\.io/mikefox303/filaman-system:.+@sha256:[0-9a-f]{64}$' my3d-filaman/docker-compose.yml
           grep -Eq '^    image: ghcr\.io/donkie/spoolman:0\.26\.1@sha256:[0-9a-f]{64}$' my3d-spoolman/docker-compose.yml
-          ! grep -Eq '^[[:space:]]*network_mode:[[:space:]]*host([[:space:]]|$)' my3d-bambuddy/docker-compose.yml
+          grep -Eq '^[[:space:]]*network_mode:[[:space:]]*host([[:space:]]|$)' my3d-bambuddy/docker-compose.yml
+          grep -Eq '^[[:space:]]*APP_HOST:[[:space:]]*192\.168\.0\.100([[:space:]]|$)' my3d-bambuddy/docker-compose.yml
+          grep -Eq '^[[:space:]]*VIRTUAL_PRINTER_ADVERTISE_ADDRESS:[[:space:]]*192\.168\.0\.100([[:space:]]|$)' my3d-bambuddy/docker-compose.yml
+          grep -Eq '^[[:space:]]*VIRTUAL_PRINTER_PASV_ADDRESS:[[:space:]]*192\.168\.0\.100([[:space:]]|$)' my3d-bambuddy/docker-compose.yml
           ! grep -Eq 'ghcr\.io/mikefox303/bambuddy|:latest(@|$)|:daily(@|$)' my3d-bambuddy/docker-compose.yml
 
       - name: Validate Compose files
