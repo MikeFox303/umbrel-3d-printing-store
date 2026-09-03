@@ -1,0 +1,23 @@
+manifestVersion: 1.1
+id: my3d-bambuddy-beta
+name: Bambuddy Beta
+category: automation
+version: "0.0.0-beta-bootstrap"
+tagline: Тестовый канал Bambuddy для Umbrel
+description: >-
+  Beta/Daily канал официального Bambuddy для тестирования новых функций.
+  Образы публикуются в Store только после проверки multi-arch digest и smoke-test.
+  Для повседневной работы используйте стабильный Bambuddy.
+developer: maziggy
+website: https://bambuddy.cool/
+repo: https://github.com/maziggy/bambuddy
+support: https://github.com/maziggy/bambuddy/issues
+icon: https://raw.githubusercontent.com/maziggy/bambuddy/main/static/img/android-chrome-512x512.png
+port: 8281
+gallery: []
+dependencies: []
+path: ""
+torOnly: false
+releaseNotes: >-
+  Bootstrap manifest for the Beta/Daily channel. The sync workflow will replace
+  this placeholder version and image with an immutable tested upstream prerelease.
