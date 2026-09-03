@@ -30,6 +30,8 @@ jobs:
           python3 -m py_compile my3d-bambuddy-manager/src/server.py
           python3 -m unittest discover -s tests -p 'test_bambuddy_manager.py' -v
           cmp my3d-bambuddy-manager/src/server.py my3d-bambuddy-manager/server.py.template
+          bash -n my3d-bambuddy/exports.sh
+          bash -n my3d-bambuddy-manager/exports.sh
 
       - name: Require validated immutable image pins and Virtual Printer host network
         shell: bash
@@ -46,6 +48,20 @@ jobs:
           grep -Eq '^[[:space:]]*-[[:space:]]*NET_BIND_SERVICE([[:space:]]|$)' my3d-bambuddy/docker-compose.yml
           ! grep -Eq 'ghcr\.io/mikefox303/bambuddy|:latest(@|$)|:daily(@|$)' my3d-bambuddy/docker-compose.yml
           grep -Fq '/var/run/docker.sock:/var/run/docker.sock' my3d-bambuddy-manager/docker-compose.yml
+
+          grep -Fq 'export APP_BAMBUDDY_APP_DIR="${EXPORTS_APP_DIR}"' my3d-bambuddy/exports.sh
+          grep -Fq 'export APP_BAMBUDDY_DATA_DIR="${EXPORTS_APP_DATA_DIR}"' my3d-bambuddy/exports.sh
+          grep -Fq 'dirname "${EXPORTS_APP_DIR}"' my3d-bambuddy-manager/exports.sh
+          grep -Fq 'APP_BAMBUDDY_DATA_DIR="${APP_BAMBUDDY_APP_DIR}/data"' my3d-bambuddy-manager/exports.sh
+          ! grep -Eq '/home/umbrel|/state/default/persist' my3d-bambuddy-manager/exports.sh
+
+          grep -Fq 'source: ${APP_BAMBUDDY_APP_DIR}' my3d-bambuddy-manager/docker-compose.yml
+          grep -Fq 'target: /umbrel-app-data/my3d-bambuddy' my3d-bambuddy-manager/docker-compose.yml
+          grep -Fq 'source: ${APP_BAMBUDDY_DATA_DIR}' my3d-bambuddy-manager/docker-compose.yml
+          grep -Fq 'target: /umbrel-app-data/my3d-bambuddy/data' my3d-bambuddy-manager/docker-compose.yml
+          test "$(grep -Ec '^[[:space:]]*create_host_path:[[:space:]]*false([[:space:]]|$)' my3d-bambuddy-manager/docker-compose.yml)" -eq 2
+          ! grep -Fq '/home/umbrel/umbrel/app-data/my3d-bambuddy' my3d-bambuddy-manager/docker-compose.yml
+          ! grep -Fq '/state/default/persist' my3d-bambuddy-manager/docker-compose.yml
           ! grep -Fq 'PROXY_AUTH_ADD: "false"' my3d-bambuddy-manager/docker-compose.yml
           ! grep -Fq "PROXY_AUTH_ADD: 'false'" my3d-bambuddy-manager/docker-compose.yml
           ! grep -Eq 'PROXY_AUTH_ADD:[[:space:]]*false([[:space:]]|$)' my3d-bambuddy-manager/docker-compose.yml
@@ -63,8 +79,11 @@ jobs:
           APP_DATA_DIR: /tmp/umbrel-app-data
           APP_SEED: test-seed
           APP_PASSWORD: test-password
+          APP_BAMBUDDY_APP_DIR: /tmp/bambuddy-app-definition
+          APP_BAMBUDDY_DATA_DIR: /tmp/bambuddy-persistent-data
         run: |
           set -euo pipefail
+          mkdir -p "$APP_DATA_DIR" "$APP_BAMBUDDY_APP_DIR" "$APP_BAMBUDDY_DATA_DIR"
           cat >/tmp/umbrel-app-proxy.yml <<'EOF'
           services:
             app_proxy:
@@ -81,10 +100,11 @@ jobs:
         run: |
           set -euo pipefail
           export APP_DATA_DIR=/tmp/bambuddy-manager-smoke
-          rm -rf "$APP_DATA_DIR"
-          mkdir -p "$APP_DATA_DIR/data"
+          export APP_BAMBUDDY_APP_DIR=/tmp/bambuddy-manager-target
+          export APP_BAMBUDDY_DATA_DIR=/tmp/bambuddy-manager-target-data
+          rm -rf "$APP_DATA_DIR" "$APP_BAMBUDDY_APP_DIR" "$APP_BAMBUDDY_DATA_DIR"
+          mkdir -p "$APP_DATA_DIR/data" "$APP_BAMBUDDY_APP_DIR" "$APP_BAMBUDDY_DATA_DIR"
           cp my3d-bambuddy-manager/server.py.template "$APP_DATA_DIR/server.py.template"
-          sudo mkdir -p /home/umbrel/umbrel/app-data/my3d-bambuddy
           cat >/tmp/umbrel-app-proxy.yml <<'EOF'
           services:
             app_proxy:

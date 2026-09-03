@@ -28,7 +28,16 @@ services:
       - ${APP_DATA_DIR}/server.py.template:/app/server.py:ro
       - ${APP_DATA_DIR}/data:/manager-data
       - /var/run/docker.sock:/var/run/docker.sock
-      - /home/umbrel/umbrel/app-data/my3d-bambuddy:/umbrel-app-data/my3d-bambuddy
+      - type: bind
+        source: ${APP_BAMBUDDY_APP_DIR}
+        target: /umbrel-app-data/my3d-bambuddy
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${APP_BAMBUDDY_DATA_DIR}
+        target: /umbrel-app-data/my3d-bambuddy/data
+        bind:
+          create_host_path: false
     tmpfs:
       - /tmp
     container_name: my3d-bambuddy-manager_server_1
