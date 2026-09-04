@@ -2,7 +2,7 @@ manifestVersion: 1.1
 id: my3d-foxforge
 name: FoxForge
 category: automation
-version: "0.1.0-alpha.2"
+version: "0.1.0-alpha.3"
 tagline: Единое управление Bambu Lab и Moonraker/Klipper
 description: >-
   FoxForge — open-source self-hosted платформа управления 3D-принтерами с
@@ -20,9 +20,11 @@ dependencies: []
 path: ""
 torOnly: false
 releaseNotes: >-
-  FoxForge v0.1.0-alpha.2 улучшает достоверность интерфейса: отдельные состояния
-  загрузки, обновления и ошибок API, корректное отображение stale/degraded/offline
-  телеметрии, независимые read-запросы Fleet и Queue и улучшенный Inventory.
-  Сохраняются read-only публичный API, авторизация через Umbrel App Proxy и
-  persistent /data. Физическая проверка X2D, OpenKE и Raspberry Pi 5 остаётся
-  отдельным alpha validation gate.
+  FoxForge v0.1.0-alpha.3 добавляет защищённый командный слой и переводит
+  интерфейс из преимущественно read-only режима в управляемый self-hosted
+  workflow. Добавлены настройка принтеров из UI, операции с инвентарём,
+  безопасная загрузка .gcode/.3mf, постановка в очередь, явный запуск и
+  reconciliation неопределённых запусков. Все write-операции используют
+  аутентификацию, права, durable idempotency и audit. Образ закреплён на
+  immutable amd64/arm64 digest; физическая проверка X2D, OpenKE и Raspberry Pi 5
+  остаётся отдельным alpha validation gate.
