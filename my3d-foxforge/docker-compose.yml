@@ -5,7 +5,6 @@ services:
     environment:
       APP_HOST: my3d-foxforge_server_1
       APP_PORT: 8000
-      PROXY_AUTH_ADD: "false"
 
   server:
     image: ghcr.io/mikefox303/foxforge:0.1.0-alpha.1@sha256:f9bdb39893162df49e3a6eddfcdc10c3f950fbccaa4e3abb631711bd0605e54b
