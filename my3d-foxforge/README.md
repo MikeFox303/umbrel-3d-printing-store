@@ -1,6 +1,8 @@
 # FoxForge for UmbrelOS
 
-This package installs the immutable FoxForge `v0.1.0-alpha.1` image behind the Umbrel App Proxy and persists all application state under the app data directory.
+This package installs the immutable FoxForge `v0.1.0-alpha.2` multi-architecture image behind the Umbrel App Proxy and persists all application state under the app data directory.
+
+`alpha.2` is a reliability/UX pre-release: the live interface reports loading, refresh and API failures explicitly, keeps Fleet and Queue read lifecycles independent, and avoids presenting stale/degraded/offline printer telemetry as healthy. It does not add anonymous write APIs or claim completed physical-printer validation.
 
 ## First start
 
@@ -68,6 +70,7 @@ After saving the file, restart FoxForge from Umbrel. A printer that is powered o
 - printer discovery is not included yet;
 - Bambu Virtual Printer is not included yet;
 - adding/editing printers through the web UI is not included yet;
-- the public HTTP API is intentionally read-only until command authentication and authorization are implemented.
+- the public HTTP API is intentionally read-only until command authentication and authorization are implemented;
+- Bambu X2D, Moonraker/OpenKE and representative Raspberry Pi 5/UmbrelOS physical validation remain separate alpha validation gates.
 
 The interface supports English, Russian and Ukrainian.
