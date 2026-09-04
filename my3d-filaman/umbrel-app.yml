@@ -2,7 +2,7 @@ manifestVersion: 1.1
 id: my3d-filaman
 name: FilaMan
 category: automation
-version: "1.2.47-localized.104"
+version: "1.2.49-localized.106"
 tagline: Управление филаментом для 3D-печати
 description: >-
   Неофициальный Community App package для FilaMan. FilaMan разработан Fire-Devils.
@@ -21,5 +21,6 @@ defaultUsername: "admin@example.com"
 deterministicPassword: true
 torOnly: false
 releaseNotes: >-
-  Автоматическое обновление локализованной сборки FilaMan до 1.2.47-localized.104.
-  Сохранены русская и украинская локализации, UAH и данные приложения.
+  Обновление локализованной сборки FilaMan до upstream 1.2.49. Добавлены улучшенный
+  поиск катушек, обновлённая печать этикеток, PDF/AML-функции и новые поля данных.
+  Сохранены русская и украинская локализации, UAH, Bambuddy/X2D-интеграции и данные приложения.
