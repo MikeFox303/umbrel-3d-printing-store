@@ -9,7 +9,7 @@ const readme = await readFile(new URL('../my3d-foxforge/README.md', import.meta.
 const image = 'ghcr.io/mikefox303/foxforge:0.1.0-alpha.1@sha256:f9bdb39893162df49e3a6eddfcdc10c3f950fbccaa4e3abb631711bd0605e54b';
 
 test('FoxForge package pins the released multi-arch image', () => {
-  assert.match(compose, new RegExp(`^    image: ${image.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}$`, 'm'));
+  assert.ok(compose.includes(`    image: ${image}\n`));
   assert.match(manifest, /^version: "0\.1\.0-alpha\.1"$/m);
   assert.doesNotMatch(compose, /:latest(?:@|\s|$)/);
 });
