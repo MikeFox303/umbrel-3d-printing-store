@@ -14,10 +14,10 @@ test('FoxForge package pins the released multi-arch image', () => {
   assert.doesNotMatch(compose, /:latest(?:@|\s|$)/);
 });
 
-test('FoxForge uses Umbrel App Proxy without host privileges', () => {
+test('FoxForge uses authenticated Umbrel App Proxy without host privileges', () => {
   assert.match(compose, /^      APP_HOST: my3d-foxforge_server_1$/m);
   assert.match(compose, /^      APP_PORT: 8000$/m);
-  assert.match(compose, /^      PROXY_AUTH_ADD: "false"$/m);
+  assert.doesNotMatch(compose, /PROXY_AUTH_ADD:\s*["']?false/);
   assert.doesNotMatch(compose, /network_mode:\s*host/);
   assert.doesNotMatch(compose, /privileged:\s*true/);
   assert.doesNotMatch(compose, /docker\.sock/);
