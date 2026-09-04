@@ -4,7 +4,7 @@ name: FoxForge
 category: automation
 version: "0.1.0-alpha.1"
 tagline: Единое управление Bambu Lab и Moonraker/Klipper
-beschreibung: >-
+description: >-
   FoxForge — open-source self-hosted платформа управления 3D-принтерами с
   vendor-independent архитектурой, глубокой поддержкой Bambu Lab,
   Moonraker/Klipper, очередью печати и учётом филамента. Alpha-интерфейс
