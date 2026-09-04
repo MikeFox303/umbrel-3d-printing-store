@@ -39,7 +39,9 @@ jobs:
           set -euo pipefail
           grep -Eq '^    image: ghcr\.io/maziggy/bambuddy:[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?@sha256:[0-9a-f]{64}$' my3d-bambuddy/docker-compose.yml
           grep -Eq '^    image: ghcr\.io/mikefox303/filaman-system:.+@sha256:[0-9a-f]{64}$' my3d-filaman/docker-compose.yml
-          grep -Eq '^    image: ghcr\.io/donkie/spoolman:0\.26\.1@sha256:[0-9a-f]{64}$' my3d-spoolman/docker-compose.yml
+          grep -Eq '^    image: ghcr\.io/donkie/spoolman:[0-9]+\.[0-9]+\.[0-9]+@sha256:[0-9a-f]{64}$' my3d-spoolman/docker-compose.yml
+          grep -Eq '^    image: docker\.io/vmhomelabde/printbuddy:v[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$' my3d-printbuddy/docker-compose.yml
+          grep -Eq '^    image: ghcr\.io/mikefox303/foxforge:[^@[:space:]]+@sha256:[0-9a-f]{64}$' my3d-foxforge/docker-compose.yml
           grep -Eq '^    image: python:3\.13\.15-alpine3\.24@sha256:[0-9a-f]{64}$' my3d-bambuddy-manager/docker-compose.yml
           grep -Eq '^[[:space:]]*network_mode:[[:space:]]*host([[:space:]]|$)' my3d-bambuddy/docker-compose.yml
           grep -Eq '^[[:space:]]*APP_HOST:[[:space:]]*192\.168\.0\.100([[:space:]]|$)' my3d-bambuddy/docker-compose.yml
@@ -47,6 +49,7 @@ jobs:
           grep -Eq '^[[:space:]]*VIRTUAL_PRINTER_PASV_ADDRESS:[[:space:]]*192\.168\.0\.100([[:space:]]|$)' my3d-bambuddy/docker-compose.yml
           grep -Eq '^[[:space:]]*-[[:space:]]*NET_BIND_SERVICE([[:space:]]|$)' my3d-bambuddy/docker-compose.yml
           ! grep -Eq 'ghcr\.io/mikefox303/bambuddy|:latest(@|$)|:daily(@|$)' my3d-bambuddy/docker-compose.yml
+          ! grep -Eq 'docker\.io/vmhomelabde/printbuddy:(latest|beta|develop|main)(@|$)' my3d-printbuddy/docker-compose.yml
           grep -Fq '/var/run/docker.sock:/var/run/docker.sock' my3d-bambuddy-manager/docker-compose.yml
 
           grep -Fq 'export APP_BAMBUDDY_APP_DIR="${EXPORTS_APP_DIR}"' my3d-bambuddy/exports.sh
@@ -94,6 +97,7 @@ jobs:
           docker compose -f my3d-filaman/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null
           docker compose -f my3d-printbuddy/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null
           docker compose -f my3d-spoolman/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null
+          docker compose -f my3d-foxforge/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null
           docker compose -f my3d-bambuddy-manager/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null
 
       - name: Smoke-test Bambuddy Manager startup
