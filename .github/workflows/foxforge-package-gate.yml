@@ -1,0 +1,111 @@
+name: FoxForge Umbrel Package
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'my3d-foxforge/**'
+      - 'tests/foxforge-package.test.mjs'
+      - '.github/workflows/foxforge-package-gate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'my3d-foxforge/**'
+      - 'tests/foxforge-package.test.mjs'
+      - '.github/workflows/foxforge-package-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: foxforge-umbrel-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Validate package contract
+        run: node --test tests/foxforge-package.test.mjs
+
+      - name: Validate Umbrel Compose
+        shell: bash
+        env:
+          APP_DATA_DIR: /tmp/foxforge-umbrel-data
+        run: |
+          set -euo pipefail
+          mkdir -p "$APP_DATA_DIR"
+          cat >/tmp/umbrel-app-proxy.yml <<'EOF'
+          services:
+            app_proxy:
+              image: alpine:3.22
+          EOF
+          docker compose -f my3d-foxforge/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null
+
+  image-runtime:
+    name: FoxForge ${{ matrix.platform }} public runtime
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [linux/amd64, linux/arm64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Anonymous pull and runtime smoke test
+        shell: bash
+        env:
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          set -euo pipefail
+          image="$(sed -n 's/^[[:space:]]*image:[[:space:]]*//p' my3d-foxforge/docker-compose.yml | head -1)"
+          test -n "$image"
+
+          # Deliberately do not log in to GHCR. Umbrel must be able to pull this
+          # exact immutable release image anonymously on a fresh installation.
+          docker pull --platform "$PLATFORM" "$image"
+
+          root="/tmp/foxforge-${PLATFORM##*/}"
+          rm -rf "$root"
+          mkdir -p "$root/data"
+
+          cleanup() {
+            docker rm -f foxforge-runtime >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          docker run --platform "$PLATFORM" -d \
+            --name foxforge-runtime \
+            -p 127.0.0.1:18003:8000 \
+            -e TZ=UTC \
+            -v "$root/data:/data" \
+            "$image"
+
+          for attempt in $(seq 1 120); do
+            if curl --fail --silent --show-error http://127.0.0.1:18003/healthz >/dev/null; then
+              docker inspect --format '{{.State.Running}}' foxforge-runtime | grep -qx true
+              curl --fail --silent --show-error http://127.0.0.1:18003/ | grep -q 'FoxForge'
+              stat -c '%u:%g' "$root/data" | grep -qx '1000:1000'
+              docker exec -u 1000:1000 foxforge-runtime test -f /data/config.json
+              docker exec -u 1000:1000 foxforge-runtime test -f /data/foxforge.sqlite3
+              docker exec -u 1000:1000 foxforge-runtime python -c "import json; payload=json.load(open('/data/config.json', encoding='utf-8')); assert payload == {'schemaVersion': 1, 'printers': []}"
+              docker exec foxforge-runtime stat -c '%u:%g %a' /data/config.json | grep -qx '1000:1000 600'
+              exit 0
+            fi
+            if [[ "$(docker inspect --format '{{.State.Running}}' foxforge-runtime)" != true ]]; then
+              break
+            fi
+            sleep 1
+          done
+
+          docker logs foxforge-runtime || true
+          docker inspect foxforge-runtime || true
+          exit 1

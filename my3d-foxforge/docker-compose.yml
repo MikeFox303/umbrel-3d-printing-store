@@ -1,0 +1,28 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: my3d-foxforge_server_1
+      APP_PORT: 8000
+
+  server:
+    image: ghcr.io/mikefox303/foxforge:0.1.0-alpha.1@sha256:f9bdb39893162df49e3a6eddfcdc10c3f950fbccaa4e3abb631711bd0605e54b
+    restart: on-failure
+    init: true
+    stop_grace_period: 30s
+    environment:
+      TZ: Europe/Kyiv
+      FOXFORGE_HOST: 0.0.0.0
+      FOXFORGE_PORT: "8000"
+      FOXFORGE_DATA_DIR: /data
+      FOXFORGE_CONFIG: /data/config.json
+    volumes:
+      - ${APP_DATA_DIR}/data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3).read()"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    container_name: my3d-foxforge_server_1

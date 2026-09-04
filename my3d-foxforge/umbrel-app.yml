@@ -1,0 +1,27 @@
+manifestVersion: 1.1
+id: my3d-foxforge
+name: FoxForge
+category: automation
+version: "0.1.0-alpha.1"
+tagline: Единое управление Bambu Lab и Moonraker/Klipper
+description: >-
+  FoxForge — open-source self-hosted платформа управления 3D-принтерами с
+  vendor-independent архитектурой, глубокой поддержкой Bambu Lab,
+  Moonraker/Klipper, очередью печати и учётом филамента. Alpha-интерфейс
+  доступен на английском, русском и украинском языках.
+developer: MikeFox303
+website: https://github.com/MikeFox303/FoxForge
+repo: https://github.com/MikeFox303/FoxForge
+support: https://github.com/MikeFox303/FoxForge/issues
+icon: https://raw.githubusercontent.com/MikeFox303/umbrel-3d-printing-store/main/my3d-foxforge/icon.svg
+port: 8283
+gallery: []
+dependencies: []
+path: ""
+torOnly: false
+releaseNotes: >-
+  Первый UmbrelOS-пакет FoxForge v0.1.0-alpha.1. Используется immutable
+  multi-architecture image для amd64/arm64. Данные, конфигурация принтеров,
+  очередь и инвентарь сохраняются в каталоге приложения Umbrel. Поддерживаются
+  Bambu LAN и Moonraker по явно заданному IP; discovery и Virtual Printer
+  оставлены для следующих релизов.
