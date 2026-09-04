@@ -1,6 +1,8 @@
 name: Upstream version audit
 
 on:
+  pull_request:
+    branches: [main]
   schedule:
     - cron: '17 6 * * *'
   workflow_dispatch:
@@ -9,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: upstream-version-audit
+  group: upstream-version-audit-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
