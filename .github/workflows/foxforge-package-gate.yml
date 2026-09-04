@@ -93,10 +93,11 @@ jobs:
             if curl --fail --silent --show-error http://127.0.0.1:18003/healthz >/dev/null; then
               docker inspect --format '{{.State.Running}}' foxforge-runtime | grep -qx true
               curl --fail --silent --show-error http://127.0.0.1:18003/ | grep -q 'FoxForge'
-              test -f "$root/data/config.json"
-              test -f "$root/data/foxforge.sqlite3"
-              jq -e '.schemaVersion == 1 and .printers == []' "$root/data/config.json" >/dev/null
               stat -c '%u:%g' "$root/data" | grep -qx '1000:1000'
+              docker exec -u 1000:1000 foxforge-runtime test -f /data/config.json
+              docker exec -u 1000:1000 foxforge-runtime test -f /data/foxforge.sqlite3
+              docker exec -u 1000:1000 foxforge-runtime python -c "import json; payload=json.load(open('/data/config.json', encoding='utf-8')); assert payload == {'schemaVersion': 1, 'printers': []}"
+              docker exec foxforge-runtime stat -c '%u:%g %a' /data/config.json | grep -qx '1000:1000 600'
               exit 0
             fi
             if [[ "$(docker inspect --format '{{.State.Running}}' foxforge-runtime)" != true ]]; then
