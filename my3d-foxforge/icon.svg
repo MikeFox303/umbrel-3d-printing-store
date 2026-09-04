@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">FoxForge</title>
+  <desc id="desc">FoxForge stylized F mark</desc>
+  <rect width="512" height="512" rx="112" fill="#0f172a"/>
+  <path d="M132 112h260v72H216v74h150v72H216v70h-84V112z" fill="#f97316"/>
+  <path d="M334 330h58v70h-58z" fill="#fb923c"/>
+</svg>
