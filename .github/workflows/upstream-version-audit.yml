@@ -1,0 +1,25 @@
+name: Upstream version audit
+
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: upstream-version-audit
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Compare Store versions with upstream releases
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/audit-upstream-versions.mjs
