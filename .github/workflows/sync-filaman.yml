@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Store
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -81,7 +81,7 @@ jobs:
         run: |
           set -euo pipefail
           node --test tests/*.test.mjs
-          grep -Eq '^    image: ghcr\.io/mikefox303/bambuddy:.+@sha256:[0-9a-f]{64}$' my3d-bambuddy/docker-compose.yml
+          grep -Eq '^    image: ghcr\.io/maziggy/bambuddy:[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?@sha256:[0-9a-f]{64}$' my3d-bambuddy/docker-compose.yml
           grep -Eq '^    image: ghcr\.io/mikefox303/filaman-system:.+@sha256:[0-9a-f]{64}$' my3d-filaman/docker-compose.yml
           cat >/tmp/umbrel-app-proxy.yml <<'EOF'
           services:
