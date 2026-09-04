@@ -14,7 +14,7 @@ website: https://github.com/MikeFox303/FoxForge
 repo: https://github.com/MikeFox303/FoxForge
 support: https://github.com/MikeFox303/FoxForge/issues
 icon: https://raw.githubusercontent.com/MikeFox303/umbrel-3d-printing-store/main/my3d-foxforge/icon.svg
-port: 8282
+port: 8283
 gallery: []
 dependencies: []
 path: ""
