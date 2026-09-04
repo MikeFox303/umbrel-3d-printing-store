@@ -6,11 +6,11 @@ const compose = await readFile(new URL('../my3d-foxforge/docker-compose.yml', im
 const manifest = await readFile(new URL('../my3d-foxforge/umbrel-app.yml', import.meta.url), 'utf8');
 const readme = await readFile(new URL('../my3d-foxforge/README.md', import.meta.url), 'utf8');
 
-const image = 'ghcr.io/mikefox303/foxforge:0.1.0-alpha.2@sha256:02ae9788ccf0412d11d97af607e13e9e9b39df51b1b6d50743ae333ef8cfedc1';
+const image = 'ghcr.io/mikefox303/foxforge:0.1.0-alpha.3@sha256:efab08cdbfa515d83b665a71c2b48642d530c4880ec0d7b85b5488a34e2acc94';
 
 test('FoxForge package pins the released multi-arch image', () => {
   assert.ok(compose.includes(`    image: ${image}\n`));
-  assert.match(manifest, /^version: "0\.1\.0-alpha\.2"$/m);
+  assert.match(manifest, /^version: "0\.1\.0-alpha\.3"$/m);
   assert.doesNotMatch(compose, /:latest(?:@|\s|$)/);
 });
 
@@ -30,13 +30,16 @@ test('FoxForge persists app-owned state using umbrelOS-compatible short volume s
   assert.match(compose, /\/healthz/);
 });
 
-test('FoxForge setup guide documents both first alpha adapters and secret handling', () => {
+test('FoxForge setup guide documents supported adapters, secrets and guarded print workflow', () => {
   for (const expected of [
     '"adapterKind": "bambu"',
     '"access_code": "YOUR_LAN_ACCESS_CODE"',
     '"adapterKind": "moonraker"',
     '"base_url": "http://192.168.1.120:7125"',
-    'Keep access codes and API keys private',
+    'Stored access codes and API keys remain inside the FoxForge app data directory',
+    'data/artifacts/',
+    'press **Start** separately',
+    '`INDETERMINATE`',
   ]) {
     assert.ok(readme.includes(expected), `missing setup guidance: ${expected}`);
   }
