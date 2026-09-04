@@ -49,9 +49,9 @@ function record(name, local, upstream, mode = 'strict') {
 
 const bambuddy = await github('/repos/maziggy/bambuddy/releases/latest');
 record(
-  'Bambuddy stable',
-  readManifestVersion('my3d-bambuddy/umbrel-app.yml'),
-  stripV(bambuddy.tag_name),
+  'Bambuddy stable channel',
+  readJson('channels/bambuddy/stable.json').releaseTag,
+  bambuddy.tag_name,
 );
 
 const bambuddyReleases = await github('/repos/maziggy/bambuddy/releases?per_page=30');
@@ -103,6 +103,8 @@ const summary = [
     const result = ok ? 'Current' : mode === 'warning' ? 'Review localized fork' : 'Update required';
     return `| ${name} | \`${local}\` | \`${upstream}\` | ${result} |`;
   }),
+  '',
+  'Bambuddy Stable/Beta are audited through channel metadata rather than the Umbrel bootstrap package. This preserves the Manager architecture where runtime channels can advance without rewriting the installed package definition.',
   '',
   'FilaMan upstream drift is informational here because the localized fork has its own guarded merge, localization, migration and image-validation gates. The Store must never replace it with an unvalidated upstream image automatically.',
   '',
