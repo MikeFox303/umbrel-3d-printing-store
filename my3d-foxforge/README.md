@@ -1,19 +1,22 @@
 # FoxForge for UmbrelOS
 
-This package installs the immutable FoxForge `v0.1.0-alpha.2` multi-architecture image behind the Umbrel App Proxy and persists all application state under the app data directory.
+This package installs the immutable FoxForge `v0.1.0-alpha.3` multi-architecture image behind the Umbrel App Proxy and persists all application state under the app data directory.
 
-`alpha.2` is a reliability/UX pre-release: the live interface reports loading, refresh and API failures explicitly, keeps Fleet and Queue read lifecycles independent, and avoids presenting stale/degraded/offline printer telemetry as healthy. It does not add anonymous write APIs or claim completed physical-printer validation.
+`alpha.3` is the first guarded command-capable FoxForge pre-release. In addition to the live fleet, queue and inventory read models, the web application can now manage printer configuration, mutate filament inventory and submit print jobs through authenticated/idempotent command APIs. Print submission remains intentionally explicit and fail-closed: the browser stages file bytes, enqueues the verified artifact and requires a separate Start action; ambiguous `INDETERMINATE` starts require reconciliation instead of blind retry.
 
 ## First start
 
-Install **FoxForge** from this Community App Store and open it once. The server creates:
+Install **FoxForge** from this Community App Store and open it once. The server creates and maintains:
 
-- `data/config.json` — printer connection configuration;
-- `data/foxforge.sqlite3` — durable queue and filament inventory state.
+- `data/config.json` — persistent printer connection configuration;
+- `data/foxforge.sqlite3` — durable queue, inventory, command-idempotency and audit state;
+- `data/artifacts/` — content-addressed staged `.gcode` / `.3mf` payloads after files are uploaded through the print workflow.
 
-The alpha UI is read-only for printer configuration, so printers are added by editing `data/config.json` and restarting the FoxForge app. Keep access codes and API keys private; they remain inside the FoxForge app data directory and are not returned by the public read API.
+Use **Add Printer** in the FoxForge web UI to configure supported printers. Stored access codes and API keys remain inside the FoxForge app data directory and are not returned by public read models. Direct editing of `data/config.json` remains an administrative fallback; stop FoxForge before editing it manually and keep a backup of `/data` before alpha upgrades.
 
 ## Bambu Lab LAN example
+
+The UI supports the Bambu LAN adapter. The equivalent persisted configuration is:
 
 ```json
 {
@@ -35,9 +38,11 @@ The alpha UI is read-only for printer configuration, so printers are added by ed
 }
 ```
 
-FoxForge uses Bambu LAN MQTT on port `8883` and FTPS on port `990` by default. Optional settings include `mqtt_port`, `ftps_port`, `username`, `connect_timeout_seconds`, `command_timeout_seconds`, and `tls_verify`.
+FoxForge uses Bambu LAN MQTT on port `8883` and implicit FTPS on port `990` by default. Optional settings include `mqtt_port`, `ftps_port`, `username`, `connect_timeout_seconds`, `command_timeout_seconds`, and `tls_verify`.
 
 ## Moonraker / Klipper example
+
+The UI also supports Moonraker/Klipper configuration. The equivalent persisted configuration is:
 
 ```json
 {
@@ -61,16 +66,31 @@ If Moonraker requires authentication, add `"api_key": "YOUR_API_KEY"` to `settin
 
 ## Mixed fleet
 
-Both printer objects can be placed in the same `printers` array. `printerId` values must be unique and stable.
+Bambu and Moonraker printers can coexist in the same FoxForge instance. `printerId` values must remain unique and stable.
 
-After saving the file, restart FoxForge from Umbrel. A printer that is powered off or temporarily unreachable does not prevent FoxForge from starting; the runtime keeps it offline and retries the connection in the background.
+A printer that is powered off or temporarily unreachable does not prevent FoxForge from starting; the runtime keeps it offline and retries connectivity in the background. Printer setup also exposes test/reconnect actions so configuration can be validated without exposing stored credentials through the read API.
+
+## Safe print workflow
+
+For supported print files the browser workflow is intentionally staged:
+
+1. select a local `.gcode` or `.3mf` file;
+2. FoxForge calculates SHA-256 in the browser and uploads file bytes only;
+3. the backend verifies and stores the content-addressed artifact under `/data/artifacts`;
+4. enqueue the artifact for a selected printer;
+5. press **Start** separately to dispatch the print;
+6. if the remote side effect becomes `INDETERMINATE`, reconcile whether the print started instead of retrying blindly.
+
+The client filesystem path is never sent as a server-side path, and receipt-bearing jobs are never blindly redispatched.
 
 ## Alpha limitations
 
 - printer discovery is not included yet;
 - Bambu Virtual Printer is not included yet;
-- adding/editing printers through the web UI is not included yet;
-- the public HTTP API is intentionally read-only until command authentication and authorization are implemented;
-- Bambu X2D, Moonraker/OpenKE and representative Raspberry Pi 5/UmbrelOS physical validation remain separate alpha validation gates.
+- common Pause / Resume / Cancel controls are not included in `alpha.3`;
+- realtime WebSocket/SSE application-event delivery is not implemented yet; the UI still polls;
+- automatic queue-to-filament consumption accounting and persistent farm scheduling are not implemented yet;
+- deep Bambu AMS operations/drying, HMS actions, K profiles, dual-nozzle controls and X2D-specific storage behavior remain future validated capabilities;
+- physical Bambu X2D, Moonraker/OpenKE and representative Raspberry Pi 5/UmbrelOS validation remain separate alpha validation gates.
 
 The interface supports English, Russian and Ukrainian.
