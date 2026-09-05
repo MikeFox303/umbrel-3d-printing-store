@@ -88,9 +88,32 @@ record(
 const foxforgeReleases = await github('/repos/MikeFox303/FoxForge/releases?per_page=30');
 const latestFoxForge = foxforgeReleases.find((release) => !release.draft);
 if (!latestFoxForge) throw new Error('No FoxForge release was found');
+
+const foxforgeManifestVersion = readManifestVersion('my3d-foxforge/umbrel-app.yml');
+const foxforgePackage = readJson('my3d-foxforge/foxforge-package.json');
+let foxforgeAuditedVersion = packageBase(foxforgeManifestVersion);
+let foxforgeAuditNote = '';
+
+if (foxforgePackage.packageRole === 'pre-alpha-5-validation-candidate') {
+  for (const field of ['baseReleaseVersion', 'targetReleaseVersion', 'sourceCommit', 'imageDigest']) {
+    if (typeof foxforgePackage[field] !== 'string' || foxforgePackage[field].length === 0) {
+      throw new Error(`FoxForge validation candidate is missing ${field}`);
+    }
+  }
+  if (!/^[0-9a-f]{40}$/.test(foxforgePackage.sourceCommit)) {
+    throw new Error('FoxForge validation candidate sourceCommit must be a full commit SHA');
+  }
+  if (!/^sha256:[0-9a-f]{64}$/.test(foxforgePackage.imageDigest)) {
+    throw new Error('FoxForge validation candidate imageDigest must be an immutable sha256 digest');
+  }
+  foxforgeAuditedVersion = foxforgePackage.baseReleaseVersion;
+  foxforgeAuditNote = `FoxForge candidate package ${foxforgeManifestVersion} audits published base ${foxforgeAuditedVersion}; source=${foxforgePackage.sourceCommit} target=${foxforgePackage.targetReleaseVersion}`;
+  console.log(`INFO  ${foxforgeAuditNote}`);
+}
+
 record(
-  'FoxForge',
-  readManifestVersion('my3d-foxforge/umbrel-app.yml'),
+  'FoxForge published base',
+  foxforgeAuditedVersion,
   stripV(latestFoxForge.tag_name),
 );
 
@@ -107,6 +130,7 @@ const summary = [
   'Bambuddy Stable/Beta are audited through channel metadata rather than the Umbrel bootstrap package. This preserves the Manager architecture where runtime channels can advance without rewriting the installed package definition.',
   '',
   'FilaMan upstream drift is informational here because the localized fork has its own guarded merge, localization, migration and image-validation gates. The Store must never replace it with an unvalidated upstream image automatically.',
+  ...(foxforgeAuditNote ? ['', foxforgeAuditNote] : []),
   '',
 ].join('\n');
 
