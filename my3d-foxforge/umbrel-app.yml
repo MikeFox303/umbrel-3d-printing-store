@@ -2,7 +2,7 @@ manifestVersion: 1.1
 id: my3d-foxforge
 name: FoxForge
 category: automation
-version: "0.1.0-alpha.4.3"
+version: "0.1.0-alpha.4.3-umbrel.1"
 tagline: Единое управление Bambu Lab и Moonraker/Klipper
 description: >-
   FoxForge — open-source self-hosted платформа управления 3D-принтерами с
@@ -21,10 +21,15 @@ path: ""
 deterministicPassword: true
 torOnly: false
 releaseNotes: >-
-  FoxForge v0.1.0-alpha.4.3 — третий hotfix Alpha 4. Исправлено падение команд
-  в iOS Safari/WebKit при открытии FoxForge по обычному HTTP LAN-адресу: при
-  отсутствии crypto.randomUUID теперь используется криптографический UUIDv4
-  fallback через crypto.getRandomValues. Добавлены unit/browser regression
-  tests. Это восстанавливает Add Printer и другие write-flow (очередь,
-  инвентарь, Pause/Resume/Cancel) в таком окружении. Схемы /data и транспорты
-  принтеров не менялись. Образ закреплён на immutable amd64/arm64 OCI digest.
+  Pre-Alpha 5 validation candidate 1, не финальный v0.1.0-alpha.5. Umbrel
+  package identity 0.1.0-alpha.4.3-umbrel.1 keeps the published Alpha 4.3
+  release as the audited base while explicitly carrying a newer validation
+  build from FoxForge commit e7d4d77612890157203239f8d97a6c4abc328859.
+  Образ закреплён на immutable amd64/arm64 OCI digest
+  sha256:877ab4a53a6c8106482fa25d88f1f4ab52d26ba04f5be271e7f5efdd557258d1.
+  Добавлены test-before-save для Bambu, стабильный ID из serial, LAN discovery,
+  структурированные ошибки подключения, безопасная диагностика reconnect и её
+  отображение на вкладке Diagnostics. Сохраняются live Bambu/AMS, очередь и
+  защищённые Pause/Resume/Cancel. Эта сборка предназначена для физической
+  проверки Raspberry Pi 5 + Umbrel + X2D + AMS 2 Pro; выпуск Alpha 5 будет
+  возможен только после фиксации результатов реального тестирования.

@@ -9,12 +9,32 @@ const packageContract = JSON.parse(
   await readFile(new URL('../my3d-foxforge/foxforge-package.json', import.meta.url), 'utf8'),
 );
 
-const image = 'ghcr.io/mikefox303/foxforge:0.1.0-alpha.4.3@sha256:00d1829d4e260aa1035b81e87148ecdfac15fc5ba68f5c50b36d7ed925788b5b';
+const sourceSha = 'e7d4d77612890157203239f8d97a6c4abc328859';
+const digest = 'sha256:877ab4a53a6c8106482fa25d88f1f4ab52d26ba04f5be271e7f5efdd557258d1';
+const image = `ghcr.io/mikefox303/foxforge:sha-e7d4d77@${digest}`;
+const packageVersion = '0.1.0-alpha.4.3-umbrel.1';
 
-test('FoxForge package pins the released multi-arch image', () => {
+test('FoxForge package pins the exact Pre-Alpha 5 validation image', () => {
   assert.ok(compose.includes(`    image: ${image}\n`));
-  assert.match(manifest, /^version: "0\.1\.0-alpha\.4\.3"$/m);
+  assert.match(manifest, new RegExp(`^version: "${packageVersion.replaceAll('.', '\\.') }"$`, 'm'));
   assert.doesNotMatch(compose, /:latest(?:@|\s|$)/);
+  assert.ok(manifest.includes(sourceSha));
+  assert.ok(manifest.includes(digest));
+  assert.match(manifest, /not the final|не финальный/i);
+  assert.match(readme, /Pre-Alpha 5 physical-validation candidate/);
+  assert.ok(readme.includes(sourceSha));
+});
+
+test('FoxForge validation package records a published base and explicit candidate source', () => {
+  assert.equal(packageContract.packageRole, 'pre-alpha-5-validation-candidate');
+  assert.equal(packageContract.baseReleaseVersion, '0.1.0-alpha.4.3');
+  assert.equal(packageContract.targetReleaseVersion, '0.1.0-alpha.5');
+  assert.equal(packageContract.sourceCommit, sourceSha);
+  assert.equal(packageContract.imageDigest, digest);
+  assert.match(manifest, /^version: "0\.1\.0-alpha\.4\.3-umbrel\.1"$/m);
+  assert.match(readme, /package-local identity `0\.1\.0-alpha\.4\.3-umbrel\.1`/);
+  assert.match(readme, /base remains tied to the latest published FoxForge release/);
+  assert.match(readme, /must not be treated as the final Alpha 5 release/);
 });
 
 test('FoxForge uses authenticated Umbrel App Proxy without host privileges', () => {
@@ -29,23 +49,13 @@ test('FoxForge uses authenticated Umbrel App Proxy without host privileges', () 
 
 test('FoxForge package declares a truthful application auth capability', () => {
   assert.equal(packageContract.schemaVersion, 1);
-  assert.ok(['read-only', 'write-enabled'].includes(packageContract.authMode));
+  assert.equal(packageContract.authMode, 'write-enabled');
   assert.equal(typeof packageContract.reason, 'string');
   assert.ok(packageContract.reason.length > 20);
 
   // ADR 0005 deliberately rejects tokenless trusted-browser mode in production.
   assert.doesNotMatch(compose, /FOXFORGE_TRUSTED_BROWSER_SESSIONS:\s*["']?(?:true|1|yes|on)["']?\s*$/im);
 
-  if (packageContract.authMode === 'read-only') {
-    assert.doesNotMatch(compose, /^\s*FOXFORGE_COMMAND_TOKEN:/m);
-    assert.match(packageContract.reason, /read|write|token|bootstrap/i);
-    return;
-  }
-
-  // A write-enabled package must explicitly supply the FoxForge application
-  // credential. App Proxy authentication alone is defense in depth, not the
-  // application principal. Umbrel APP_PASSWORD is a per-app credential and is
-  // also visible to the operator in Umbrel for the explicit Unlock writes flow.
   assert.match(compose, /^\s*FOXFORGE_COMMAND_TOKEN:\s*["']?\$\{APP_PASSWORD\}["']?\s*$/m);
   assert.match(packageContract.reason, /APP_PASSWORD/);
   assert.match(readme, /Unlock writes/);
@@ -58,19 +68,36 @@ test('FoxForge persists app-owned state using umbrelOS-compatible short volume s
   assert.match(compose, /\/healthz/);
 });
 
-test('FoxForge setup guide documents supported adapters, secrets and guarded print workflow', () => {
+test('FoxForge setup guide documents current secret-store and guarded print workflow', () => {
   for (const expected of [
     '"adapterKind": "bambu"',
-    '"access_code": "YOUR_LAN_ACCESS_CODE"',
+    '"host": "192.168.1.100"',
     '"adapterKind": "moonraker"',
     '"base_url": "http://192.168.1.120:7125"',
-    'Stored access codes and API keys remain inside the FoxForge app data directory',
+    'data/secrets.json',
+    'Do not manually place credentials in `config.json`',
     'data/artifacts/',
     'press **Start** separately',
     '`INDETERMINATE`',
-    'Pause / Resume / Cancel',
-    'realtime SSE',
+    'Pause, Resume and Cancel',
+    '**Diagnostics**',
   ]) {
     assert.ok(readme.includes(expected), `missing setup guidance: ${expected}`);
+  }
+  assert.doesNotMatch(readme, /"access_code"\s*:/);
+  assert.doesNotMatch(readme, /"api_key"\s*:/);
+});
+
+test('physical validation checklist covers the real Pre-Alpha 5 acceptance path', () => {
+  for (const expected of [
+    'Raspberry Pi 5/Umbrel + X2D + AMS 2 Pro',
+    'add the X2D through the GUI',
+    'restart FoxForge',
+    'temporarily make the X2D unreachable',
+    'FTPS upload + MQTT `project_file` acknowledgement',
+    'Pause, Resume and Cancel',
+    'not retained in browser storage',
+  ]) {
+    assert.ok(readme.includes(expected), `missing physical validation step: ${expected}`);
   }
 });
