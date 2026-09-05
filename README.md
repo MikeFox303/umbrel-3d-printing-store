@@ -1,6 +1,6 @@
 # 3D Printing Community App Store для Umbrel
 
-Неофициальный Community App Store для self-hosted программ 3D-печати: FilaMan, Bambuddy, Bambuddy Manager, Printbuddy и Spoolman.
+Неофициальный Community App Store для self-hosted программ 3D-печати: FoxForge, FilaMan, Bambuddy, Bambuddy Manager, Printbuddy и Spoolman.
 
 ## Установка Store
 
@@ -9,6 +9,18 @@
 3. Для Bambuddy сначала установите **Bambuddy**, затем **Bambuddy Manager**. Manager имеет зависимость от `my3d-bambuddy` и управляет уже установленным runtime.
 
 UmbrelOS периодически обновляет зарегистрированные Community Store, поэтому удалять и повторно добавлять Store после каждой новой версии не нужно.
+
+## FoxForge
+
+`my3d-foxforge` — пакет FoxForge для UmbrelOS. Актуальная линия пакета использует immutable multi-architecture образ `v0.1.0-alpha.4` для Linux `amd64` и `arm64`.
+
+FoxForge остаётся ранней alpha-версией. Пакет предоставляет единый self-hosted интерфейс для Bambu Lab и Moonraker/Klipper, очередь печати, inventory катушек, общие Pause/Resume/Cancel и realtime application events. Автоматический filament accounting P3 и persistent farm scheduler пока не входят в релиз.
+
+Для защищённых write-операций пакет передаёт уникальный Umbrel `APP_PASSWORD` в FoxForge как `FOXFORGE_COMMAND_TOKEN`. Оператор вводит пароль приложения Umbrel в **Unlock writes** внутри FoxForge; браузер хранит credential только в памяти текущей вкладки. Umbrel App Proxy остаётся отдельным защитным слоем и не заменяет авторизацию самого FoxForge.
+
+Пакет закреплён на конкретном GHCR digest, не использует `latest`, не требует `network_mode: host`, privileged mode или Docker socket. Состояние хранится в `${APP_DATA_DIR}/data`.
+
+Важно: CI проверяет package contract, Compose, anonymous pull и запуск `amd64`/`arm64`, но это не заменяет реальную валидацию Bambu X2D, Moonraker/OpenKE и Raspberry Pi 5/UmbrelOS. Эти проверки остаются обязательным FoxForge alpha validation gate.
 
 ## Bambuddy: рекомендуемый способ установки и обновления
 
@@ -87,6 +99,8 @@ Channel automation намеренно **не изменяет** `my3d-bambuddy/d
 
 ## Immutable images
 
+FoxForge закрепляется на опубликованном multi-architecture SHA256 digest соответствующего guarded release и не использует floating release tags.
+
 FilaMan package закрепляется на опубликованном multi-architecture SHA256 digest и намеренно не использует `latest`.
 
 Bambuddy Stable/Beta channels также закрепляются на immutable digest официального `ghcr.io/maziggy/bambuddy`. Для multi-architecture validation CI запускает каждую архитектуру по её OCI child-manifest digest, а пользователю публикуется общий multi-arch index digest.
@@ -96,6 +110,8 @@ Printbuddy использует конкретный стабильный upstre
 ## Данные, обновление и backup
 
 Данные Umbrel хранятся в `${APP_DATA_DIR}/data` и не попадают в Git. Перед крупным обновлением рекомендуется создать backup данных. Обычное обновление через Umbrel не меняет каталог данных.
+
+Для FoxForge полный `/data` следует считать чувствительными данными: он содержит конфигурацию, SQLite state, staged artifacts и credential-bearing/recovery material. Перед alpha-upgrade делайте полный backup каталога приложения.
 
 Bambuddy Manager создаёт transactional snapshots перед destructive runtime operations, но этот snapshot защищает прежде всего SQLite database и runtime definition. Для point-in-time recovery media/archive/library файлов сохраняйте также обычные полные backup Bambuddy.
 
@@ -120,6 +136,7 @@ Bambuddy Manager создаёт transactional snapshots перед destructive r
 
 ```text
 3D Printing
+├── FoxForge — multi-vendor управление, очередь, inventory и typed Bambu/Moonraker capabilities.
 ├── FilaMan — учёт и управление inventory филамента.
 ├── Bambuddy — локальное управление, мониторинг, AMS и камера Bambu Lab.
 ├── Bambuddy Manager — Stable/Beta, verified snapshot и rollback для Bambuddy.
@@ -128,6 +145,8 @@ Bambuddy Manager создаёт transactional snapshots перед destructive r
 ```
 
 ## Рекомендуемая архитектура
+
+FoxForge развивается как отдельная multi-vendor платформа и может использоваться самостоятельно для поддерживаемых Bambu/Moonraker сценариев. Остальные приложения Store остаются независимыми и могут устанавливаться параллельно в зависимости от нужного workflow.
 
 ```text
                          ┌── Bambu Lab / AMS
@@ -154,6 +173,8 @@ Bambu Lab ── Bambuddy ── Spoolman
                 └── Bambuddy Manager
                     Stable / Beta / Rollback
 ```
+
+FoxForge — отдельный bridge-networked Umbrel package на порту `8283`. Текущая explicit-IP модель Bambu/Moonraker не требует host networking; discovery и Virtual Printer остаются отдельной будущей задачей с собственным network/physical validation.
 
 Bambuddy — отдельный Umbrel package на порту `8280`.
 

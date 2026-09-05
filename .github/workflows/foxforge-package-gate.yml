@@ -32,10 +32,11 @@ jobs:
       - name: Validate package contract
         run: node --test tests/foxforge-package.test.mjs
 
-      - name: Validate Umbrel Compose
+      - name: Validate Umbrel Compose and command-token bootstrap
         shell: bash
         env:
           APP_DATA_DIR: /tmp/foxforge-umbrel-data
+          APP_PASSWORD: foxforge-ci-app-password-32-chars-minimum
         run: |
           set -euo pipefail
           mkdir -p "$APP_DATA_DIR"
@@ -44,7 +45,8 @@ jobs:
             app_proxy:
               image: alpine:3.22
           EOF
-          docker compose -f my3d-foxforge/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/dev/null
+          docker compose -f my3d-foxforge/docker-compose.yml -f /tmp/umbrel-app-proxy.yml config >/tmp/foxforge-compose-rendered.yml
+          grep -Fq 'FOXFORGE_COMMAND_TOKEN: foxforge-ci-app-password-32-chars-minimum' /tmp/foxforge-compose-rendered.yml
 
   image-runtime:
     name: FoxForge ${{ matrix.platform }} public runtime
@@ -96,7 +98,7 @@ jobs:
               stat -c '%u:%g' "$root/data" | grep -qx '1000:1000'
               docker exec -u 1000:1000 foxforge-runtime test -f /data/config.json
               docker exec -u 1000:1000 foxforge-runtime test -f /data/foxforge.sqlite3
-              docker exec -u 1000:1000 foxforge-runtime python -c "import json; payload=json.load(open('/data/config.json', encoding='utf-8')); assert payload == {'schemaVersion': 1, 'printers': []}"
+              docker exec -u 1000:1000 foxforge-runtime python -c "import json; payload=json.load(open('/data/config.json', encoding='utf-8')); assert payload == {'schemaVersion': 2, 'printers': []}"
               docker exec foxforge-runtime stat -c '%u:%g %a' /data/config.json | grep -qx '1000:1000 600'
               exit 0
             fi
