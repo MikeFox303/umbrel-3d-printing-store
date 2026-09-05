@@ -1,0 +1,5 @@
+{
+  "schemaVersion": 1,
+  "authMode": "read-only",
+  "reason": "The immutable v0.1.0-alpha.3 package predates the ADR-0005 application command-token bootstrap. Protected browser writes are intentionally not claimed as supported for this historical package."
+}
