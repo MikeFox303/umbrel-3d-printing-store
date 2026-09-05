@@ -2,7 +2,7 @@ manifestVersion: 1.1
 id: my3d-foxforge
 name: FoxForge
 category: automation
-version: "0.1.0-alpha.4.4"
+version: "0.1.0-alpha.4.3-umbrel.1"
 tagline: Единое управление Bambu Lab и Moonraker/Klipper
 description: >-
   FoxForge — open-source self-hosted платформа управления 3D-принтерами с
@@ -21,9 +21,12 @@ path: ""
 deterministicPassword: true
 torOnly: false
 releaseNotes: >-
-  Pre-Alpha 5 validation candidate 1, не финальный v0.1.0-alpha.5. Пакет собран
-  из FoxForge commit e7d4d77612890157203239f8d97a6c4abc328859 и закреплён на
-  immutable amd64/arm64 OCI digest sha256:877ab4a53a6c8106482fa25d88f1f4ab52d26ba04f5be271e7f5efdd557258d1.
+  Pre-Alpha 5 validation candidate 1, не финальный v0.1.0-alpha.5. Umbrel
+  package identity 0.1.0-alpha.4.3-umbrel.1 keeps the published Alpha 4.3
+  release as the audited base while explicitly carrying a newer validation
+  build from FoxForge commit e7d4d77612890157203239f8d97a6c4abc328859.
+  Образ закреплён на immutable amd64/arm64 OCI digest
+  sha256:877ab4a53a6c8106482fa25d88f1f4ab52d26ba04f5be271e7f5efdd557258d1.
   Добавлены test-before-save для Bambu, стабильный ID из serial, LAN discovery,
   структурированные ошибки подключения, безопасная диагностика reconnect и её
   отображение на вкладке Diagnostics. Сохраняются live Bambu/AMS, очередь и
