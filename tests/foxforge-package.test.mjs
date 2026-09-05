@@ -5,6 +5,9 @@ import test from 'node:test';
 const compose = await readFile(new URL('../my3d-foxforge/docker-compose.yml', import.meta.url), 'utf8');
 const manifest = await readFile(new URL('../my3d-foxforge/umbrel-app.yml', import.meta.url), 'utf8');
 const readme = await readFile(new URL('../my3d-foxforge/README.md', import.meta.url), 'utf8');
+const packageContract = JSON.parse(
+  await readFile(new URL('../my3d-foxforge/foxforge-package.json', import.meta.url), 'utf8'),
+);
 
 const image = 'ghcr.io/mikefox303/foxforge:0.1.0-alpha.3@sha256:efab08cdbfa515d83b665a71c2b48642d530c4880ec0d7b85b5488a34e2acc94';
 
@@ -22,6 +25,27 @@ test('FoxForge uses authenticated Umbrel App Proxy without host privileges', () 
   assert.doesNotMatch(compose, /privileged:\s*true/);
   assert.doesNotMatch(compose, /docker\.sock/);
   assert.match(manifest, /^port: 8283$/m);
+});
+
+test('FoxForge package declares a truthful application auth capability', () => {
+  assert.equal(packageContract.schemaVersion, 1);
+  assert.ok(['read-only', 'write-enabled'].includes(packageContract.authMode));
+  assert.equal(typeof packageContract.reason, 'string');
+  assert.ok(packageContract.reason.length > 20);
+
+  // ADR 0005 deliberately rejects tokenless trusted-browser mode in production.
+  assert.doesNotMatch(compose, /FOXFORGE_TRUSTED_BROWSER_SESSIONS:\s*["']?(?:true|1|yes|on)["']?\s*$/im);
+
+  if (packageContract.authMode === 'read-only') {
+    assert.doesNotMatch(compose, /^\s*FOXFORGE_COMMAND_TOKEN:/m);
+    assert.match(packageContract.reason, /read|write|token|bootstrap/i);
+    return;
+  }
+
+  // A write-enabled package must explicitly supply the FoxForge application
+  // credential. App Proxy authentication alone is defense in depth, not the
+  // application principal.
+  assert.match(compose, /^\s*FOXFORGE_COMMAND_TOKEN:\s*\S+/m);
 });
 
 test('FoxForge persists app-owned state using umbrelOS-compatible short volume syntax', () => {
