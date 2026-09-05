@@ -2,7 +2,7 @@ manifestVersion: 1.1
 id: my3d-foxforge
 name: FoxForge
 category: automation
-version: "0.1.0-alpha.4.2"
+version: "0.1.0-alpha.4.3"
 tagline: Единое управление Bambu Lab и Moonraker/Klipper
 description: >-
   FoxForge — open-source self-hosted платформа управления 3D-принтерами с
@@ -20,10 +20,10 @@ dependencies: []
 path: ""
 torOnly: false
 releaseNotes: >-
-  FoxForge v0.1.0-alpha.4.2 — второй hotfix для Alpha 4. Устранены оставшиеся
-  responsive- и stacking-регрессии Operator Access и Add Printer на телефонах,
-  планшетах, 16:9 и ultra-wide 32:9 экранах; добавлены browser-runtime и CSS
-  token regression checks. Exact release commit прошёл production browser,
-  backend/frontend, security и container gates. Umbrel продолжает использовать
-  уникальный APP_PASSWORD как FOXFORGE_COMMAND_TOKEN; данные в /data сохраняются
-  при обновлении. Образ закреплён на immutable amd64/arm64 OCI digest.
+  FoxForge v0.1.0-alpha.4.3 — третий hotfix Alpha 4. Исправлено падение команд
+  в iOS Safari/WebKit при открытии FoxForge по обычному HTTP LAN-адресу: при
+  отсутствии crypto.randomUUID теперь используется криптографический UUIDv4
+  fallback через crypto.getRandomValues. Добавлены unit/browser regression
+  tests. Это восстанавливает Add Printer и другие write-flow (очередь,
+  инвентарь, Pause/Resume/Cancel) в таком окружении. Схемы /data и транспорты
+  принтеров не менялись. Образ закреплён на immutable amd64/arm64 OCI digest.

@@ -9,11 +9,11 @@ const packageContract = JSON.parse(
   await readFile(new URL('../my3d-foxforge/foxforge-package.json', import.meta.url), 'utf8'),
 );
 
-const image = 'ghcr.io/mikefox303/foxforge:0.1.0-alpha.4.2@sha256:39d2f2fd02ed8dafe68ce741543642a62d9f3669d2deeb118bc5abce61589fc6';
+const image = 'ghcr.io/mikefox303/foxforge:0.1.0-alpha.4.3@sha256:00d1829d4e260aa1035b81e87148ecdfac15fc5ba68f5c50b36d7ed925788b5b';
 
 test('FoxForge package pins the released multi-arch image', () => {
   assert.ok(compose.includes(`    image: ${image}\n`));
-  assert.match(manifest, /^version: "0\.1\.0-alpha\.4\.2"$/m);
+  assert.match(manifest, /^version: "0\.1\.0-alpha\.4\.3"$/m);
   assert.doesNotMatch(compose, /:latest(?:@|\s|$)/);
 });
 
