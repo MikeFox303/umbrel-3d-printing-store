@@ -1,10 +1,27 @@
 # FoxForge for UmbrelOS
 
-This package installs the immutable FoxForge `v0.1.0-alpha.4` multi-architecture image behind the Umbrel App Proxy and persists all application state under the app data directory.
+This package installs FoxForge behind the Umbrel App Proxy and persists all application state under the app data directory.
 
-`alpha.4` includes authenticated printer setup and queue/inventory commands, common Pause/Resume/Cancel controls for Bambu and Moonraker, FoxForge-owned realtime application events over SSE, the complete normal inventory operator workflow, persistence migrations, SecretStore-backed printer credentials and the independent-audit stabilization/security foundation.
+The next Store package is a **Pre-Alpha 5 physical-validation candidate**, not the final `v0.1.0-alpha.5` release. It is built from FoxForge source commit `e7d4d77612890157203239f8d97a6c4abc328859` and is intended to validate the real Raspberry Pi 5 + Umbrel + Bambu X2D + AMS 2 Pro path before the semantic Alpha 5 release is created.
 
-This remains an early alpha. Automated package/runtime checks do not replace representative physical validation on Bambu X2D, Moonraker/OpenKE or Raspberry Pi 5/UmbrelOS.
+The Store version uses the intermediate identity `0.1.0-alpha.4.4` so it sorts after the currently published `0.1.0-alpha.4.3` package and before the planned final `0.1.0-alpha.5`. The package release notes identify it explicitly as a Pre-Alpha 5 validation candidate.
+
+This remains early-alpha software. Automated package/runtime checks do not replace representative physical validation on Bambu X2D, Moonraker/OpenKE or Raspberry Pi 5/UmbrelOS.
+
+## What this validation candidate adds
+
+Compared with the current Alpha 4.3 package, the candidate adds the Pre-Alpha 5 Bambu connection work already merged into FoxForge `main`:
+
+- Add Printer validates a Bambu connection before persistence, so failed credentials/reachability do not leave a dead configured printer;
+- stable Bambu printer IDs are derived from the normalized serial number;
+- Bambu LAN discovery/manual entry and model selection are available from the web UI;
+- setup failures use normalized codes rather than raw Python/vendor exceptions;
+- EN/RU/UK guidance distinguishes unreachable printer, rejected LAN credentials, MQTT timeout, initial-state timeout and internal adapter failures;
+- per-printer reconnect supervision retains secret-safe normalized failure context across recovery;
+- the printer **Diagnostics** tab shows reconnect attempts, failure category, retry state and recovery time without exposing raw transport messages or credentials;
+- existing live Bambu state, AMS/AMS 2 Pro material observation, guarded Pause/Resume/Cancel and staged print dispatch remain available for physical validation.
+
+P3 automatic filament accounting remains frozen during this milestone.
 
 ## Write access on Umbrel
 
@@ -24,45 +41,59 @@ Umbrel App Proxy remains defense in depth; it is not treated as the FoxForge app
 
 Install **FoxForge** from this Community App Store and open it once. The server creates and maintains:
 
-- `data/config.json` — persistent printer connection configuration;
+- `data/config.json` — persistent non-secret printer connection configuration;
+- `data/secrets.json` — application-owned secret store for Bambu LAN access codes and Moonraker API keys;
 - `data/foxforge.sqlite3` — durable queue, inventory, command-idempotency and audit state;
 - `data/artifacts/` — content-addressed staged `.gcode` / `.3mf` payloads after files are uploaded through the print workflow.
 
-Use **Add Printer** in the FoxForge web UI to configure supported printers. Stored access codes and API keys remain inside the FoxForge app data directory and are not returned by public read models. Direct editing of `data/config.json` remains an administrative fallback; stop FoxForge before editing it manually and keep a complete backup of `/data` before alpha upgrades.
+Use **Add Printer** in the FoxForge web UI to configure supported printers. Do not manually place credentials in `config.json`; current FoxForge persists Bambu access codes and Moonraker API keys through its SecretStore boundary. Legacy inline credentials are migrated into `secrets.json` on startup. The complete `/data` directory is credential-bearing data and must be treated as sensitive.
 
-## Bambu Lab LAN example
+## Bambu Lab LAN setup
 
-The UI supports the Bambu LAN adapter. The equivalent persisted configuration is:
+Use **Add Printer → Bambu Lab (LAN mode)**. You can scan an explicit local subnet or enter the printer manually. FoxForge asks for:
+
+- display name;
+- Bambu model;
+- printer serial number;
+- printer IP/hostname;
+- LAN access code.
+
+FoxForge normalizes the serial number and creates the stable local printer ID automatically. Before saving, it must connect to MQTT and receive an initial live printer state. A failed validation is not persisted.
+
+The resulting non-secret `config.json` entry is equivalent to:
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "printers": [
     {
-      "printerId": "bambu-x2d",
+      "printerId": "bambu-<stable-id>",
       "displayName": "Bambu Lab X2D",
       "vendor": "Bambu Lab",
       "model": "X2D",
       "serialNumber": "YOUR_PRINTER_SERIAL",
       "adapterKind": "bambu",
       "settings": {
-        "host": "192.168.1.100",
-        "access_code": "YOUR_LAN_ACCESS_CODE"
+        "host": "192.168.1.100"
       }
     }
   ]
 }
 ```
 
-FoxForge uses Bambu LAN MQTT on port `8883` and implicit FTPS on port `990` by default. Optional settings include `mqtt_port`, `ftps_port`, `username`, `connect_timeout_seconds`, `command_timeout_seconds`, `tls_verify`, and independent MQTT/FTPS certificate SHA-256 pins.
+The LAN access code is stored separately in `data/secrets.json` and is not returned by public read models.
 
-## Moonraker / Klipper example
+FoxForge uses Bambu LAN MQTT on port `8883` and implicit FTPS on port `990` by default. Optional advanced settings include `mqtt_port`, `ftps_port`, `username`, `connect_timeout_seconds`, `command_timeout_seconds`, `tls_verify`, and independent MQTT/FTPS certificate SHA-256 pins.
 
-The UI also supports Moonraker/Klipper configuration. The equivalent persisted configuration is:
+## Moonraker / Klipper setup
+
+Use **Add Printer → Klipper / Moonraker** and provide a stable local printer ID, display name and Moonraker URL. If the Moonraker server requires an API key, enter it in the UI; FoxForge stores it through the same SecretStore boundary.
+
+The non-secret persisted shape is equivalent to:
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "printers": [
     {
       "printerId": "ender3-v3-ke",
@@ -78,13 +109,13 @@ The UI also supports Moonraker/Klipper configuration. The equivalent persisted c
 }
 ```
 
-If Moonraker requires authentication, add `"api_key": "YOUR_API_KEY"` to `settings`. `request_timeout_seconds` is also optional. Current FoxForge applies explicit destination/redirect/address-resolution policy to Moonraker endpoints.
+Current FoxForge applies explicit destination/redirect/address-resolution policy to Moonraker endpoints.
 
 ## Mixed fleet
 
 Bambu and Moonraker printers can coexist in the same FoxForge instance. `printerId` values must remain unique and stable.
 
-A printer that is powered off or temporarily unreachable does not prevent FoxForge from starting; per-printer reconnect supervision keeps it offline and retries independently in the background.
+A printer that is powered off or temporarily unreachable does not prevent FoxForge from starting. Per-printer reconnect supervision retries independently with bounded backoff/jitter. Open the printer's **Diagnostics** tab to inspect the normalized reconnect history without exposing raw vendor errors.
 
 ## Safe print workflow
 
@@ -99,29 +130,32 @@ For supported print files the browser workflow is intentionally staged:
 
 The client filesystem path is never sent as a server-side path, and receipt-bearing jobs are never blindly redispatched.
 
-## What alpha.4 adds over the previous Umbrel package
+## Pre-Alpha 5 physical validation sequence
 
-- common typed Pause / Resume / Cancel for Bambu and Moonraker with exact observed vendor-job identity guards;
-- realtime SSE invalidation with replay/resync semantics while HTTP snapshots remain canonical truth;
-- complete normal inventory workflow: create, correct mass, edit empty-spool mass, assign/move/unassign, archive and inspect history;
-- atomic/idempotent inventory persistence;
-- versioned persistence migrations and backup/validation machinery;
-- SecretStore boundary for Bambu access codes and Moonraker API keys;
-- hardened Bambu certificate-pinning option and Moonraker endpoint policy;
-- artifact quota/free-space/orphan cleanup;
-- per-printer reconnect supervision;
-- production-container browser acceptance and stronger dependency/security governance.
+The candidate must not be promoted to final Alpha 5 based only on Store CI. On the real Raspberry Pi 5/Umbrel + X2D + AMS 2 Pro deployment, validate at minimum:
 
-## Alpha limitations
+1. install/update this exact digest-pinned package and unlock writes using the app password shown by Umbrel;
+2. add the X2D through the GUI with its real serial, host and LAN access code;
+3. confirm live connection/state and AMS 2 Pro slots/material state;
+4. restart FoxForge and confirm the saved printer reconnects without being re-added;
+5. temporarily make the X2D unreachable, confirm a sanitized reconnect incident appears, then restore reachability and confirm recovery;
+6. stage a known-safe `.3mf`, enqueue it, then press **Start** separately and verify FTPS upload + MQTT `project_file` acknowledgement on the physical X2D;
+7. during the test print, verify guarded Pause, Resume and Cancel behavior against the same observed vendor job identity;
+8. reload the browser and confirm the operator credential is not retained in browser storage;
+9. record failures as well as successes before changing any physical-validation status in the FoxForge repository.
 
-- printer discovery is not included yet;
-- Bambu Virtual Printer is not included yet;
-- automatic queue-to-filament consumption accounting (P3) is not included in `alpha.4` and remains frozen behind the physical/deployment validation gate;
+The exact source commit, immutable image digest and Store merge commit must be recorded with the validation evidence.
+
+## Current limitations
+
+- this validation candidate is **not** the final `v0.1.0-alpha.5` release;
+- Bambu Virtual Printer is not included;
+- automatic queue-to-filament consumption accounting (P3) remains frozen behind the physical/deployment validation gate;
 - persistent farm scheduling/distributed leases are not implemented yet;
-- deep Bambu AMS/CFS operations, drying, HMS actions, K profiles, dual-nozzle controls and other vendor-depth capabilities remain future typed work;
-- physical Bambu X2D validation remains required for transport, certificate, project delivery, job control and lifecycle behavior;
+- deep Bambu AMS/CFS operations such as drying, HMS actions, K profiles and dual-nozzle controls remain future typed capabilities;
+- physical Bambu X2D validation is still required for transport, certificate, project delivery, job control and lifecycle behavior;
 - physical Moonraker/OpenKE validation remains required for endpoint-policy compatibility, upload/start/job-control/lifecycle behavior;
-- representative Raspberry Pi 5/UmbrelOS install, restart/persistence, real proxy/write path, printer-network reachability, upgrade and SSE reconnect/resync validation remain required.
+- representative Raspberry Pi 5/UmbrelOS install, restart/persistence, real proxy/write path, printer-network reachability and SSE reconnect/resync validation remain required.
 
 The interface supports English, Russian and Ukrainian.
 
