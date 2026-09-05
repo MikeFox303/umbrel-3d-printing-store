@@ -12,10 +12,11 @@ const packageContract = JSON.parse(
 const sourceSha = 'e7d4d77612890157203239f8d97a6c4abc328859';
 const digest = 'sha256:877ab4a53a6c8106482fa25d88f1f4ab52d26ba04f5be271e7f5efdd557258d1';
 const image = `ghcr.io/mikefox303/foxforge:sha-e7d4d77@${digest}`;
+const packageVersion = '0.1.0-alpha.4.3-umbrel.1';
 
 test('FoxForge package pins the exact Pre-Alpha 5 validation image', () => {
   assert.ok(compose.includes(`    image: ${image}\n`));
-  assert.match(manifest, /^version: "0\.1\.0-alpha\.4\.4"$/m);
+  assert.match(manifest, new RegExp(`^version: "${packageVersion.replaceAll('.', '\\.') }"$`, 'm'));
   assert.doesNotMatch(compose, /:latest(?:@|\s|$)/);
   assert.ok(manifest.includes(sourceSha));
   assert.ok(manifest.includes(digest));
@@ -24,10 +25,16 @@ test('FoxForge package pins the exact Pre-Alpha 5 validation image', () => {
   assert.ok(readme.includes(sourceSha));
 });
 
-test('FoxForge validation package version sorts between Alpha 4.3 and final Alpha 5', () => {
-  assert.match(manifest, /^version: "0\.1\.0-alpha\.4\.4"$/m);
-  assert.match(readme, /after the currently published `0\.1\.0-alpha\.4\.3` package/);
-  assert.match(readme, /before the planned final `0\.1\.0-alpha\.5`/);
+test('FoxForge validation package records a published base and explicit candidate source', () => {
+  assert.equal(packageContract.packageRole, 'pre-alpha-5-validation-candidate');
+  assert.equal(packageContract.baseReleaseVersion, '0.1.0-alpha.4.3');
+  assert.equal(packageContract.targetReleaseVersion, '0.1.0-alpha.5');
+  assert.equal(packageContract.sourceCommit, sourceSha);
+  assert.equal(packageContract.imageDigest, digest);
+  assert.match(manifest, /^version: "0\.1\.0-alpha\.4\.3-umbrel\.1"$/m);
+  assert.match(readme, /package-local identity `0\.1\.0-alpha\.4\.3-umbrel\.1`/);
+  assert.match(readme, /base remains tied to the latest published FoxForge release/);
+  assert.match(readme, /must not be treated as the final Alpha 5 release/);
 });
 
 test('FoxForge uses authenticated Umbrel App Proxy without host privileges', () => {
