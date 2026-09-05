@@ -9,11 +9,11 @@ const packageContract = JSON.parse(
   await readFile(new URL('../my3d-foxforge/foxforge-package.json', import.meta.url), 'utf8'),
 );
 
-const image = 'ghcr.io/mikefox303/foxforge:0.1.0-alpha.3@sha256:efab08cdbfa515d83b665a71c2b48642d530c4880ec0d7b85b5488a34e2acc94';
+const image = 'ghcr.io/mikefox303/foxforge:0.1.0-alpha.4@sha256:0b0d96e5243db82ad3349bbc1c96243cbc6288c27eb716ff80512eb925b9fef4';
 
 test('FoxForge package pins the released multi-arch image', () => {
   assert.ok(compose.includes(`    image: ${image}\n`));
-  assert.match(manifest, /^version: "0\.1\.0-alpha\.3"$/m);
+  assert.match(manifest, /^version: "0\.1\.0-alpha\.4"$/m);
   assert.doesNotMatch(compose, /:latest(?:@|\s|$)/);
 });
 
@@ -44,8 +44,12 @@ test('FoxForge package declares a truthful application auth capability', () => {
 
   // A write-enabled package must explicitly supply the FoxForge application
   // credential. App Proxy authentication alone is defense in depth, not the
-  // application principal.
-  assert.match(compose, /^\s*FOXFORGE_COMMAND_TOKEN:\s*\S+/m);
+  // application principal. Umbrel APP_PASSWORD is a per-app credential and is
+  // also visible to the operator in Umbrel for the explicit Unlock writes flow.
+  assert.match(compose, /^\s*FOXFORGE_COMMAND_TOKEN:\s*["']?\$\{APP_PASSWORD\}["']?\s*$/m);
+  assert.match(packageContract.reason, /APP_PASSWORD/);
+  assert.match(readme, /Unlock writes/);
+  assert.match(readme, /APP_PASSWORD/);
 });
 
 test('FoxForge persists app-owned state using umbrelOS-compatible short volume syntax', () => {
@@ -64,6 +68,8 @@ test('FoxForge setup guide documents supported adapters, secrets and guarded pri
     'data/artifacts/',
     'press **Start** separately',
     '`INDETERMINATE`',
+    'Pause / Resume / Cancel',
+    'realtime SSE',
   ]) {
     assert.ok(readme.includes(expected), `missing setup guidance: ${expected}`);
   }
