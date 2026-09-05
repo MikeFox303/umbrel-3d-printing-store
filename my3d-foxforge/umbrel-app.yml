@@ -2,13 +2,13 @@ manifestVersion: 1.1
 id: my3d-foxforge
 name: FoxForge
 category: automation
-version: "0.1.0-alpha.3"
+version: "0.1.0-alpha.4"
 tagline: Единое управление Bambu Lab и Moonraker/Klipper
 description: >-
   FoxForge — open-source self-hosted платформа управления 3D-принтерами с
   vendor-independent архитектурой, глубокой поддержкой Bambu Lab,
-  Moonraker/Klipper, очередью печати и учётом филамента. Alpha-интерфейс
-  доступен на английском, русском и украинском языках.
+  Moonraker/Klipper, очередью печати, управлением заданиями и учётом филамента.
+  Alpha-интерфейс доступен на английском, русском и украинском языках.
 developer: MikeFox303
 website: https://github.com/MikeFox303/FoxForge
 repo: https://github.com/MikeFox303/FoxForge
@@ -20,11 +20,12 @@ dependencies: []
 path: ""
 torOnly: false
 releaseNotes: >-
-  FoxForge v0.1.0-alpha.3 добавляет защищённый командный слой и переводит
-  интерфейс из преимущественно read-only режима в управляемый self-hosted
-  workflow. Добавлены настройка принтеров из UI, операции с инвентарём,
-  безопасная загрузка .gcode/.3mf, постановка в очередь, явный запуск и
-  reconciliation неопределённых запусков. Все write-операции используют
-  аутентификацию, права, durable idempotency и audit. Образ закреплён на
-  immutable amd64/arm64 digest; физическая проверка X2D, OpenKE и Raspberry Pi 5
-  остаётся отдельным alpha validation gate.
+  FoxForge v0.1.0-alpha.4 добавляет общие Pause/Resume/Cancel для Bambu и
+  Moonraker, realtime application events через SSE, полный операторский workflow
+  inventory, усиленную persistence/security основу и production-browser
+  acceptance. Umbrel package теперь использует уникальный APP_PASSWORD как
+  FOXFORGE_COMMAND_TOKEN: после открытия FoxForge введите пароль приложения
+  Umbrel в окне Unlock writes, чтобы разрешить защищённые команды. Образ
+  закреплён на immutable amd64/arm64 digest. Физическая проверка X2D,
+  Moonraker/OpenKE и Raspberry Pi 5/Umbrel по-прежнему остаётся обязательным
+  alpha validation gate; автоматический filament accounting P3 не включён.
