@@ -4,7 +4,7 @@ This package installs FoxForge behind the Umbrel App Proxy and persists all appl
 
 The next Store package is a **Pre-Alpha 5 physical-validation candidate**, not the final `v0.1.0-alpha.5` release. It is built from FoxForge source commit `e7d4d77612890157203239f8d97a6c4abc328859` and is intended to validate the real Raspberry Pi 5 + Umbrel + Bambu X2D + AMS 2 Pro path before the semantic Alpha 5 release is created.
 
-The Store version uses the intermediate identity `0.1.0-alpha.4.4` so it sorts after the currently published `0.1.0-alpha.4.3` package and before the planned final `0.1.0-alpha.5`. The package release notes identify it explicitly as a Pre-Alpha 5 validation candidate.
+The Store version uses the package-local identity `0.1.0-alpha.4.3-umbrel.1`. The `0.1.0-alpha.4.3` base remains tied to the latest published FoxForge release for upstream-version auditing, while `-umbrel.1` identifies this installable physical-validation package. The exact newer FoxForge source commit and immutable image digest are recorded separately in the package contract and release notes. This package is a validation candidate only and must not be treated as the final Alpha 5 release.
 
 This remains early-alpha software. Automated package/runtime checks do not replace representative physical validation on Bambu X2D, Moonraker/OpenKE or Raspberry Pi 5/UmbrelOS.
 
