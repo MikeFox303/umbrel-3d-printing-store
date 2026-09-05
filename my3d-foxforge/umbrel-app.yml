@@ -18,6 +18,7 @@ port: 8283
 gallery: []
 dependencies: []
 path: ""
+deterministicPassword: true
 torOnly: false
 releaseNotes: >-
   FoxForge v0.1.0-alpha.4.3 — третий hotfix Alpha 4. Исправлено падение команд
