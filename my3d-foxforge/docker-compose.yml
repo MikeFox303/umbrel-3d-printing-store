@@ -7,7 +7,7 @@ services:
       APP_PORT: 8000
 
   server:
-    image: ghcr.io/mikefox303/foxforge:0.1.0-alpha.3@sha256:efab08cdbfa515d83b665a71c2b48642d530c4880ec0d7b85b5488a34e2acc94
+    image: ghcr.io/mikefox303/foxforge:0.1.0-alpha.4@sha256:0b0d96e5243db82ad3349bbc1c96243cbc6288c27eb716ff80512eb925b9fef4
     restart: on-failure
     init: true
     stop_grace_period: 30s
@@ -17,6 +17,7 @@ services:
       FOXFORGE_PORT: "8000"
       FOXFORGE_DATA_DIR: /data
       FOXFORGE_CONFIG: /data/config.json
+      FOXFORGE_COMMAND_TOKEN: "${APP_PASSWORD}"
     volumes:
       - ${APP_DATA_DIR}/data:/data
     healthcheck:
