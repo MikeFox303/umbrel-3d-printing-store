@@ -1,5 +1,5 @@
 {
   "schemaVersion": 1,
   "authMode": "write-enabled",
-  "reason": "FoxForge v0.1.0-alpha.4.3 receives Umbrel's unique APP_PASSWORD as FOXFORGE_COMMAND_TOKEN. Operators explicitly enter that same app password in FoxForge's memory-only Unlock writes flow; Umbrel App Proxy remains a separate defense-in-depth boundary."
+  "reason": "Pre-Alpha 5 validation package receives Umbrel's unique APP_PASSWORD as FOXFORGE_COMMAND_TOKEN. Operators explicitly enter that same app password in FoxForge's memory-only Unlock writes flow; Umbrel App Proxy remains a separate defense-in-depth boundary."
 }
