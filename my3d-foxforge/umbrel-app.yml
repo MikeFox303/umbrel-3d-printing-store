@@ -2,7 +2,7 @@ manifestVersion: 1.1
 id: my3d-foxforge
 name: FoxForge
 category: automation
-version: "0.1.0-alpha.4"
+version: "0.1.0-alpha.4.1"
 tagline: Единое управление Bambu Lab и Moonraker/Klipper
 description: >-
   FoxForge — open-source self-hosted платформа управления 3D-принтерами с
@@ -20,12 +20,12 @@ dependencies: []
 path: ""
 torOnly: false
 releaseNotes: >-
-  FoxForge v0.1.0-alpha.4 добавляет общие Pause/Resume/Cancel для Bambu и
-  Moonraker, realtime application events через SSE, полный операторский workflow
-  inventory, усиленную persistence/security основу и production-browser
-  acceptance. Umbrel package теперь использует уникальный APP_PASSWORD как
-  FOXFORGE_COMMAND_TOKEN: после открытия FoxForge введите пароль приложения
-  Umbrel в окне Unlock writes, чтобы разрешить защищённые команды. Образ
-  закреплён на immutable amd64/arm64 digest. Физическая проверка X2D,
-  Moonraker/OpenKE и Raspberry Pi 5/Umbrel по-прежнему остаётся обязательным
-  alpha validation gate; автоматический filament accounting P3 не включён.
+  FoxForge v0.1.0-alpha.4.1 — первый hotfix для Alpha 4. Исправлены
+  responsive-регрессии интерфейса на телефонах, обычных 16:9 и ultra-wide 32:9
+  экранах: операторский Unlock writes теперь компактен и не перекрывает рабочую
+  область, Add Printer возвращён в поток topbar, мобильная навигация больше не
+  растягивается содержимым страницы, сохранён iOS safe-area и устранён
+  горизонтальный overflow на узких экранах. Релиз прошёл production browser,
+  backend/frontend, security и container gates. Umbrel использует тот же
+  уникальный APP_PASSWORD как FOXFORGE_COMMAND_TOKEN; данные в /data сохраняются
+  при обновлении. Образ закреплён на immutable amd64/arm64 digest.
