@@ -2,7 +2,7 @@ manifestVersion: 1.1
 id: my3d-foxforge
 name: FoxForge
 category: automation
-version: "0.1.0-alpha.4.3-umbrel.3"
+version: "0.1.0-alpha.4.3-umbrel.4"
 tagline: Единое управление Bambu Lab и Moonraker/Klipper
 description: >-
   FoxForge — open-source self-hosted платформа управления 3D-принтерами с
@@ -21,14 +21,13 @@ path: ""
 deterministicPassword: true
 torOnly: false
 releaseNotes: >-
-  Pre-Alpha 5 validation candidate 3, не финальный v0.1.0-alpha.5. Package
-  0.1.0-alpha.4.3-umbrel.3 carries FoxForge commit
-  37d1cbed8f73d62acdc1994545bc2f5ee57e816a and immutable amd64/arm64 digest
-  sha256:4e652006212db2527804abbd478b7b64fde127414b1dbe22703854280ccfce82.
-  Candidate 3 сохраняет setup rollback/idempotency safety и добавляет
-  fail-closed X2D material routing: явные 3MF material bindings, compiler-owned
-  toolhead, повторную проверку source/topology перед submit и Bambu
-  project_file nozzle_mapping только из доказанного маршрута. External 254/255
-  сохраняются через ams_mapping2 без автоматического выбора источника или
-  угадывания сопла. Физическая проверка Raspberry Pi 5 + Umbrel + X2D + AMS 2
-  Pro обязательна до выпуска Alpha 5.
+  Pre-Alpha 5 validation candidate 4, не финальный v0.1.0-alpha.5. Package
+  0.1.0-alpha.4.3-umbrel.4 carries FoxForge commit
+  c11f7145b4354aa79c8f0fad223648240e652bac and immutable amd64/arm64 digest
+  sha256:75d656bafcafb4e0e566548f6cca941244d29fef1bbc5be98e425f375246056a.
+  Candidate 4 сохраняет fail-closed X2D material routing из Candidate 3 и
+  добавляет operator-facing 3MF material binding review, безопасные подсказки
+  приватных подсетей для Bambu discovery, Material Topology UI с явными
+  fixed/dynamic/unknown/stale состояниями и закрытие EN/RU/UK responsive
+  интерфейса на phone/tablet/desktop/ultrawide. Физическая проверка Raspberry
+  Pi 5 + Umbrel + X2D + AMS 2 Pro обязательна до выпуска Alpha 5.

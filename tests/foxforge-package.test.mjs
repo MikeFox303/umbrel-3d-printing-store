@@ -9,10 +9,10 @@ const packageContract = JSON.parse(
   await readFile(new URL('../my3d-foxforge/foxforge-package.json', import.meta.url), 'utf8'),
 );
 
-const sourceSha = '37d1cbed8f73d62acdc1994545bc2f5ee57e816a';
-const digest = 'sha256:4e652006212db2527804abbd478b7b64fde127414b1dbe22703854280ccfce82';
-const image = `ghcr.io/mikefox303/foxforge:sha-37d1cbe@${digest}`;
-const packageVersion = '0.1.0-alpha.4.3-umbrel.3';
+const sourceSha = 'c11f7145b4354aa79c8f0fad223648240e652bac';
+const digest = 'sha256:75d656bafcafb4e0e566548f6cca941244d29fef1bbc5be98e425f375246056a';
+const image = `ghcr.io/mikefox303/foxforge:sha-c11f714@${digest}`;
+const packageVersion = '0.1.0-alpha.4.3-umbrel.4';
 
 test('FoxForge package pins the exact Pre-Alpha 5 validation image', () => {
   assert.ok(compose.includes(`    image: ${image}\n`));
@@ -31,13 +31,13 @@ test('FoxForge validation package records a published base and explicit candidat
   assert.equal(packageContract.targetReleaseVersion, '0.1.0-alpha.5');
   assert.equal(packageContract.sourceCommit, sourceSha);
   assert.equal(packageContract.imageDigest, digest);
-  assert.match(manifest, /^version: "0\.1\.0-alpha\.4\.3-umbrel\.3"$/m);
-  assert.match(readme, /package-local identity `0\.1\.0-alpha\.4\.3-umbrel\.3`/);
+  assert.match(manifest, /^version: "0\.1\.0-alpha\.4\.3-umbrel\.4"$/m);
+  assert.match(readme, /package-local identity `0\.1\.0-alpha\.4\.3-umbrel\.4`/);
   assert.match(readme, /base remains tied to the latest published FoxForge release/);
   assert.match(readme, /must not be treated as the final Alpha 5 release/);
 });
 
-test('FoxForge candidate 3 preserves setup safety and documents compiled Bambu routing', () => {
+test('FoxForge candidate 4 preserves routing safety and adds operator-facing validation UX', () => {
   assert.match(readme, /Update Printer now performs the same test-before-save check/);
   assert.match(readme, /same-key retry replays the same safe error/);
   assert.match(readme, /compiler-owned toolhead decision/);
@@ -48,6 +48,10 @@ test('FoxForge candidate 3 preserves setup safety and documents compiled Bambu r
   assert.match(manifest, /fail-closed X2D material routing/);
   assert.match(manifest, /project_file nozzle_mapping/);
   assert.match(manifest, /External 254\/255/);
+  assert.match(readme, /queue UI now inspects staged 3MF print plans/);
+  assert.match(readme, /bounded server-visible RFC1918 subnets/);
+  assert.match(readme, /typed Material Topology routes/);
+  assert.match(readme, /390x844, 900x1024, 1920x1080 and 5120x1440/);
 });
 
 test('FoxForge uses authenticated Umbrel App Proxy without host privileges', () => {
