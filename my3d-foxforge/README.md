@@ -2,15 +2,15 @@
 
 This package installs FoxForge behind the Umbrel App Proxy and persists all application state under the app data directory.
 
-The current Store package is a **Pre-Alpha 5 physical-validation candidate**, not the final `v0.1.0-alpha.5` release. Candidate 3 is built from FoxForge source commit `37d1cbed8f73d62acdc1994545bc2f5ee57e816a` and is intended to validate the real Raspberry Pi 5 + Umbrel + Bambu X2D + AMS 2 Pro path before the semantic Alpha 5 release is created.
+The current Store package is a **Pre-Alpha 5 physical-validation candidate**, not the final `v0.1.0-alpha.5` release. Candidate 4 is built from FoxForge source commit `c11f7145b4354aa79c8f0fad223648240e652bac` and is intended to validate the real Raspberry Pi 5 + Umbrel + Bambu X2D + AMS 2 Pro path before the semantic Alpha 5 release is created.
 
-The Store version uses the package-local identity `0.1.0-alpha.4.3-umbrel.3`. The `0.1.0-alpha.4.3` base remains tied to the latest published FoxForge release for upstream-version auditing, while `-umbrel.3` identifies the third installable physical-validation package. The exact newer FoxForge source commit and immutable image digest are recorded separately in the package contract and release notes. This package is a validation candidate only and must not be treated as the final Alpha 5 release.
+The Store version uses the package-local identity `0.1.0-alpha.4.3-umbrel.4`. The `0.1.0-alpha.4.3` base remains tied to the latest published FoxForge release for upstream-version auditing, while `-umbrel.4` identifies the fourth installable physical-validation package. The exact newer FoxForge source commit and immutable image digest are recorded separately in the package contract and release notes. This package is a validation candidate only and must not be treated as the final Alpha 5 release.
 
 This remains early-alpha software. Automated package/runtime checks do not replace representative physical validation on Bambu X2D, Moonraker/OpenKE or Raspberry Pi 5/UmbrelOS.
 
 ## What this validation candidate adds
 
-Compared with the current Alpha 4.3 release package, candidate 3 includes the Pre-Alpha 5 Bambu connection and print-routing work already merged into FoxForge `main`:
+Compared with the current Alpha 4.3 release package, candidate 4 includes the Pre-Alpha 5 Bambu connection and print-routing work already merged into FoxForge `main`:
 
 - Add Printer validates a Bambu connection before persistence, so failed credentials/reachability do not leave a dead configured printer;
 - Update Printer now performs the same test-before-save check and keeps the previous working configuration if edited host/serial/credentials cannot connect;
@@ -27,6 +27,10 @@ Compared with the current Alpha 4.3 release package, candidate 3 includes the Pr
 - the Bambu adapter revalidates source presence, topology freshness and the compiled toolhead from one native snapshot immediately before transport submission;
 - complete compiled Bambu routes serialize a per-material `project_file.nozzle_mapping`; partial or unproven nozzle mappings fail closed;
 - Bambu external sources 254/255 remain `-1` in flat `ams_mapping`, retain their real source IDs in `ams_mapping2`, and obtain a nozzle only from the proven toolhead route;
+- the queue UI now inspects staged 3MF print plans, requires explicit operator material-source bindings, shows compatibility/route blockers and never sends a client-owned toolhead decision;
+- Bambu discovery can suggest bounded server-visible RFC1918 subnets, while keeping manual CIDR entry and the same authenticated discovery/preflight boundary;
+- Printer Detail now renders typed Material Topology routes with friendly source/toolhead labels and explicit `fixed`, `dynamic`, `unknown` and stale states instead of inferring routing from a Bambu model name;
+- EN/RU/UK localization and responsive acceptance now cover the approved 390x844, 900x1024, 1920x1080 and 5120x1440 interface targets;
 - FoxForge does not auto-pick a spool by material/color and does not guess a left/right nozzle when routing is ambiguous;
 - existing live Bambu state, AMS/AMS 2 Pro material observation and guarded Pause/Resume/Cancel remain available for physical validation.
 
@@ -145,7 +149,7 @@ The client filesystem path is never sent as a server-side path, receipt-bearing 
 
 ## Pre-Alpha 5 physical validation sequence
 
-Candidate 3 must not be promoted to final Alpha 5 based only on Store CI. On the real Raspberry Pi 5/Umbrel + X2D + AMS 2 Pro deployment, validate at minimum:
+Candidate 4 must not be promoted to final Alpha 5 based only on Store CI. On the real Raspberry Pi 5/Umbrel + X2D + AMS 2 Pro deployment, validate at minimum:
 
 1. install/update this exact digest-pinned package and unlock writes using the app password shown by Umbrel;
 2. add the X2D through the GUI with its real serial, host and LAN access code;
