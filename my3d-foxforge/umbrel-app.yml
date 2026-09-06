@@ -2,7 +2,7 @@ manifestVersion: 1.1
 id: my3d-foxforge
 name: FoxForge
 category: automation
-version: "0.1.0-alpha.4.3-umbrel.1"
+version: "0.1.0-alpha.4.3-umbrel.2"
 tagline: Единое управление Bambu Lab и Moonraker/Klipper
 description: >-
   FoxForge — open-source self-hosted платформа управления 3D-принтерами с
@@ -21,15 +21,18 @@ path: ""
 deterministicPassword: true
 torOnly: false
 releaseNotes: >-
-  Pre-Alpha 5 validation candidate 1, не финальный v0.1.0-alpha.5. Umbrel
-  package identity 0.1.0-alpha.4.3-umbrel.1 keeps the published Alpha 4.3
-  release as the audited base while explicitly carrying a newer validation
-  build from FoxForge commit e7d4d77612890157203239f8d97a6c4abc328859.
-  Образ закреплён на immutable amd64/arm64 OCI digest
-  sha256:877ab4a53a6c8106482fa25d88f1f4ab52d26ba04f5be271e7f5efdd557258d1.
-  Добавлены test-before-save для Bambu, стабильный ID из serial, LAN discovery,
-  структурированные ошибки подключения, безопасная диагностика reconnect и её
-  отображение на вкладке Diagnostics. Сохраняются live Bambu/AMS, очередь и
-  защищённые Pause/Resume/Cancel. Эта сборка предназначена для физической
-  проверки Raspberry Pi 5 + Umbrel + X2D + AMS 2 Pro; выпуск Alpha 5 будет
-  возможен только после фиксации результатов реального тестирования.
+  Pre-Alpha 5 validation candidate 2, не финальный v0.1.0-alpha.5. Umbrel
+  package identity 0.1.0-alpha.4.3-umbrel.2 keeps the published Alpha 4.3
+  release as the audited base while explicitly carrying FoxForge commit
+  37b253f385c19451c7ea075a4a4d12378cf17cf2. Образ закреплён на immutable
+  amd64/arm64 OCI digest
+  sha256:e550c8026ed6ec80e973d91fe6d96cc1474d537ca87de7875ec54f4a03aaaa4f.
+  Помимо Bambu test-before-save, LAN discovery, structured connection errors,
+  reconnect diagnostics и live AMS foundation, candidate 2 исправляет два
+  release-audit дефекта: Update Printer теперь проверяет новое соединение до
+  замены рабочей конфигурации и откатывается при неудаче, а повтор failed
+  Add/Update с тем же idempotency key детерминированно возвращает тот же
+  безопасный terminal error вместо reconciliation_required. Эта сборка
+  предназначена для физической проверки Raspberry Pi 5 + Umbrel + X2D +
+  AMS 2 Pro; выпуск Alpha 5 возможен только после фиксации результатов реального
+  тестирования.
