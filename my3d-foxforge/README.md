@@ -2,17 +2,20 @@
 
 This package installs FoxForge behind the Umbrel App Proxy and persists all application state under the app data directory.
 
-The next Store package is a **Pre-Alpha 5 physical-validation candidate**, not the final `v0.1.0-alpha.5` release. It is built from FoxForge source commit `e7d4d77612890157203239f8d97a6c4abc328859` and is intended to validate the real Raspberry Pi 5 + Umbrel + Bambu X2D + AMS 2 Pro path before the semantic Alpha 5 release is created.
+The current Store package is a **Pre-Alpha 5 physical-validation candidate**, not the final `v0.1.0-alpha.5` release. Candidate 2 is built from FoxForge source commit `37b253f385c19451c7ea075a4a4d12378cf17cf2` and is intended to validate the real Raspberry Pi 5 + Umbrel + Bambu X2D + AMS 2 Pro path before the semantic Alpha 5 release is created.
 
-The Store version uses the package-local identity `0.1.0-alpha.4.3-umbrel.1`. The `0.1.0-alpha.4.3` base remains tied to the latest published FoxForge release for upstream-version auditing, while `-umbrel.1` identifies this installable physical-validation package. The exact newer FoxForge source commit and immutable image digest are recorded separately in the package contract and release notes. This package is a validation candidate only and must not be treated as the final Alpha 5 release.
+The Store version uses the package-local identity `0.1.0-alpha.4.3-umbrel.2`. The `0.1.0-alpha.4.3` base remains tied to the latest published FoxForge release for upstream-version auditing, while `-umbrel.2` identifies the second installable physical-validation package. The exact newer FoxForge source commit and immutable image digest are recorded separately in the package contract and release notes. This package is a validation candidate only and must not be treated as the final Alpha 5 release.
 
 This remains early-alpha software. Automated package/runtime checks do not replace representative physical validation on Bambu X2D, Moonraker/OpenKE or Raspberry Pi 5/UmbrelOS.
 
 ## What this validation candidate adds
 
-Compared with the current Alpha 4.3 package, the candidate adds the Pre-Alpha 5 Bambu connection work already merged into FoxForge `main`:
+Compared with the current Alpha 4.3 release package, candidate 2 includes the Pre-Alpha 5 Bambu connection work already merged into FoxForge `main`:
 
 - Add Printer validates a Bambu connection before persistence, so failed credentials/reachability do not leave a dead configured printer;
+- Update Printer now performs the same test-before-save check and keeps the previous working configuration if edited host/serial/credentials cannot connect;
+- if the persistent replacement adapter cannot connect after an update, FoxForge rolls config/secrets/fleet state back to the previous printer configuration;
+- failed Add/Update connection attempts complete durable idempotency as terminal sanitized failures, so a same-key retry replays the same safe error instead of returning `reconciliation_required` or executing the side effect again;
 - stable Bambu printer IDs are derived from the normalized serial number;
 - Bambu LAN discovery/manual entry and model selection are available from the web UI;
 - setup failures use normalized codes rather than raw Python/vendor exceptions;
@@ -58,7 +61,7 @@ Use **Add Printer → Bambu Lab (LAN mode)**. You can scan an explicit local sub
 - printer IP/hostname;
 - LAN access code.
 
-FoxForge normalizes the serial number and creates the stable local printer ID automatically. Before saving, it must connect to MQTT and receive an initial live printer state. A failed validation is not persisted.
+FoxForge normalizes the serial number and creates the stable local printer ID automatically. Before saving, it must connect to MQTT and receive an initial live printer state. A failed validation is not persisted. Editing an existing printer follows the same rule: a failed validation leaves the previous working configuration intact.
 
 The resulting non-secret `config.json` entry is equivalent to:
 
@@ -132,17 +135,19 @@ The client filesystem path is never sent as a server-side path, and receipt-bear
 
 ## Pre-Alpha 5 physical validation sequence
 
-The candidate must not be promoted to final Alpha 5 based only on Store CI. On the real Raspberry Pi 5/Umbrel + X2D + AMS 2 Pro deployment, validate at minimum:
+Candidate 2 must not be promoted to final Alpha 5 based only on Store CI. On the real Raspberry Pi 5/Umbrel + X2D + AMS 2 Pro deployment, validate at minimum:
 
 1. install/update this exact digest-pinned package and unlock writes using the app password shown by Umbrel;
 2. add the X2D through the GUI with its real serial, host and LAN access code;
 3. confirm live connection/state and AMS 2 Pro slots/material state;
-4. restart FoxForge and confirm the saved printer reconnects without being re-added;
-5. temporarily make the X2D unreachable, confirm a sanitized reconnect incident appears, then restore reachability and confirm recovery;
-6. stage a known-safe `.3mf`, enqueue it, then press **Start** separately and verify FTPS upload + MQTT `project_file` acknowledgement on the physical X2D;
-7. during the test print, verify guarded Pause, Resume and Cancel behavior against the same observed vendor job identity;
-8. reload the browser and confirm the operator credential is not retained in browser storage;
-9. record failures as well as successes before changing any physical-validation status in the FoxForge repository.
+4. edit one connection field to an intentionally invalid value and confirm the update fails without replacing the working saved printer, then restore the valid form values;
+5. retry a failed Add/Update submission without changing its browser command identity when practical and confirm FoxForge returns the same sanitized terminal outcome instead of executing the mutation twice;
+6. restart FoxForge and confirm the saved printer reconnects without being re-added;
+7. temporarily make the X2D unreachable, confirm a sanitized reconnect incident appears, then restore reachability and confirm recovery;
+8. stage a known-safe `.3mf`, enqueue it, then press **Start** separately and verify FTPS upload + MQTT `project_file` acknowledgement on the physical X2D;
+9. during the test print, verify guarded Pause, Resume and Cancel behavior against the same observed vendor job identity;
+10. reload the browser and confirm the operator credential is not retained in browser storage;
+11. record failures as well as successes before changing any physical-validation status in the FoxForge repository.
 
 The exact source commit, immutable image digest and Store merge commit must be recorded with the validation evidence.
 
