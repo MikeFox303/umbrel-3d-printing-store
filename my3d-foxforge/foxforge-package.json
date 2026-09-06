@@ -4,7 +4,7 @@
   "packageRole": "pre-alpha-5-validation-candidate",
   "baseReleaseVersion": "0.1.0-alpha.4.3",
   "targetReleaseVersion": "0.1.0-alpha.5",
-  "sourceCommit": "e7d4d77612890157203239f8d97a6c4abc328859",
-  "imageDigest": "sha256:877ab4a53a6c8106482fa25d88f1f4ab52d26ba04f5be271e7f5efdd557258d1",
+  "sourceCommit": "37b253f385c19451c7ea075a4a4d12378cf17cf2",
+  "imageDigest": "sha256:e550c8026ed6ec80e973d91fe6d96cc1474d537ca87de7875ec54f4a03aaaa4f",
   "reason": "Pre-Alpha 5 validation package receives Umbrel's unique APP_PASSWORD as FOXFORGE_COMMAND_TOKEN. Operators explicitly enter that same app password in FoxForge's memory-only Unlock writes flow; Umbrel App Proxy remains a separate defense-in-depth boundary."
 }
