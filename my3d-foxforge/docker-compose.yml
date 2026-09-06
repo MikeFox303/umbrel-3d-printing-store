@@ -7,7 +7,7 @@ services:
       APP_PORT: 8000
 
   server:
-    image: ghcr.io/mikefox303/foxforge:sha-c11f714@sha256:75d656bafcafb4e0e566548f6cca941244d29fef1bbc5be98e425f375246056a
+    image: ghcr.io/mikefox303/foxforge:sha-0351c65@sha256:00c699effbe9b245a4916a8c301df5b67435d75dd42fad02cc5bbf0ca51aec39
     restart: on-failure
     init: true
     stop_grace_period: 30s
