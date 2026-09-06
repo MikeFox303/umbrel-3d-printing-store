@@ -25,7 +25,10 @@ releaseNotes: >-
   0.1.0-alpha.4.3-umbrel.4 carries FoxForge commit
   c11f7145b4354aa79c8f0fad223648240e652bac and immutable amd64/arm64 digest
   sha256:75d656bafcafb4e0e566548f6cca941244d29fef1bbc5be98e425f375246056a.
-  Candidate 4 сохраняет fail-closed X2D material routing из Candidate 3 и
+  Candidate 4 сохраняет fail-closed X2D material routing из Candidate 3:
+  compiler-owned toolhead, повторную проверку source/topology перед submit,
+  Bambu project_file nozzle_mapping только из доказанного маршрута и External
+  254/255 через ams_mapping2 без угадывания сопла. Дополнительно Candidate 4
   добавляет operator-facing 3MF material binding review, безопасные подсказки
   приватных подсетей для Bambu discovery, Material Topology UI с явными
   fixed/dynamic/unknown/stale состояниями и закрытие EN/RU/UK responsive
