@@ -9,10 +9,10 @@ const packageContract = JSON.parse(
   await readFile(new URL('../my3d-foxforge/foxforge-package.json', import.meta.url), 'utf8'),
 );
 
-const sourceSha = '37b253f385c19451c7ea075a4a4d12378cf17cf2';
-const digest = 'sha256:e550c8026ed6ec80e973d91fe6d96cc1474d537ca87de7875ec54f4a03aaaa4f';
-const image = `ghcr.io/mikefox303/foxforge:sha-37b253f@${digest}`;
-const packageVersion = '0.1.0-alpha.4.3-umbrel.2';
+const sourceSha = '37d1cbed8f73d62acdc1994545bc2f5ee57e816a';
+const digest = 'sha256:4e652006212db2527804abbd478b7b64fde127414b1dbe22703854280ccfce82';
+const image = `ghcr.io/mikefox303/foxforge:sha-37d1cbe@${digest}`;
+const packageVersion = '0.1.0-alpha.4.3-umbrel.3';
 
 test('FoxForge package pins the exact Pre-Alpha 5 validation image', () => {
   assert.ok(compose.includes(`    image: ${image}\n`));
@@ -31,17 +31,23 @@ test('FoxForge validation package records a published base and explicit candidat
   assert.equal(packageContract.targetReleaseVersion, '0.1.0-alpha.5');
   assert.equal(packageContract.sourceCommit, sourceSha);
   assert.equal(packageContract.imageDigest, digest);
-  assert.match(manifest, /^version: "0\.1\.0-alpha\.4\.3-umbrel\.2"$/m);
-  assert.match(readme, /package-local identity `0\.1\.0-alpha\.4\.3-umbrel\.2`/);
+  assert.match(manifest, /^version: "0\.1\.0-alpha\.4\.3-umbrel\.3"$/m);
+  assert.match(readme, /package-local identity `0\.1\.0-alpha\.4\.3-umbrel\.3`/);
   assert.match(readme, /base remains tied to the latest published FoxForge release/);
   assert.match(readme, /must not be treated as the final Alpha 5 release/);
 });
 
-test('FoxForge candidate 2 documents the release-audit setup safety fixes', () => {
+test('FoxForge candidate 3 preserves setup safety and documents compiled Bambu routing', () => {
   assert.match(readme, /Update Printer now performs the same test-before-save check/);
   assert.match(readme, /same-key retry replays the same safe error/);
-  assert.match(manifest, /Update Printer.*проверяет новое соединение/s);
-  assert.match(manifest, /idempotency key.*terminal error/s);
+  assert.match(readme, /compiler-owned toolhead decision/);
+  assert.match(readme, /one native snapshot/);
+  assert.match(readme, /project_file\.nozzle_mapping/);
+  assert.match(readme, /real source IDs in `ams_mapping2`/);
+  assert.match(readme, /does not auto-pick a spool/);
+  assert.match(manifest, /fail-closed X2D material routing/);
+  assert.match(manifest, /project_file nozzle_mapping/);
+  assert.match(manifest, /External 254\/255/);
 });
 
 test('FoxForge uses authenticated Umbrel App Proxy without host privileges', () => {
@@ -86,8 +92,9 @@ test('FoxForge setup guide documents current secret-store and guarded print work
     'data/artifacts/',
     'press **Start** separately',
     '`INDETERMINATE`',
-    'Pause, Resume and Cancel',
+    'Pause/Resume/Cancel',
     '**Diagnostics**',
+    '`ams_mapping` / `ams_mapping2` / `nozzle_mapping`',
   ]) {
     assert.ok(readme.includes(expected), `missing setup guidance: ${expected}`);
   }
@@ -101,7 +108,9 @@ test('physical validation checklist covers the real Pre-Alpha 5 acceptance path'
     'add the X2D through the GUI',
     'restart FoxForge',
     'temporarily make the X2D unreachable',
+    'inspect its material requirements',
     'FTPS upload + MQTT `project_file` acknowledgement',
+    '`ams_mapping`, `ams_mapping2` and `nozzle_mapping` evidence',
     'Pause, Resume and Cancel',
     'not retained in browser storage',
   ]) {
