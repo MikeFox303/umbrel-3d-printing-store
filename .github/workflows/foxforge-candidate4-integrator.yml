@@ -63,7 +63,7 @@ jobs:
           text = readme.read_text(encoding='utf-8')
           for old, new, expected in [
               ('Candidate 3 is built from FoxForge source commit `37d1cbed8f73d62acdc1994545bc2f5ee57e816a`', 'Candidate 4 is built from FoxForge source commit `c11f7145b4354aa79c8f0fad223648240e652bac`', 1),
-              ('`0.1.0-alpha.4.3-umbrel.3`', '`0.1.0-alpha.4.3-umbrel.4`', 2),
+              ('`0.1.0-alpha.4.3-umbrel.3`', '`0.1.0-alpha.4.3-umbrel.4`', 1),
               ('`-umbrel.3` identifies the third installable physical-validation package', '`-umbrel.4` identifies the fourth installable physical-validation package', 1),
               ('Compared with the current Alpha 4.3 release package, candidate 3 includes', 'Compared with the current Alpha 4.3 release package, candidate 4 includes', 1),
               ('Candidate 3 must not be promoted to final Alpha 5 based only on Store CI.', 'Candidate 4 must not be promoted to final Alpha 5 based only on Store CI.', 1),
