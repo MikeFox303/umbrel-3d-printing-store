@@ -2,7 +2,7 @@ manifestVersion: 1.1
 id: my3d-foxforge
 name: FoxForge
 category: automation
-version: "0.1.0-alpha.4.3-umbrel.4"
+version: "0.1.0-alpha.4.3-umbrel.5"
 tagline: Единое управление Bambu Lab и Moonraker/Klipper
 description: >-
   FoxForge — open-source self-hosted платформа управления 3D-принтерами с
@@ -21,16 +21,17 @@ path: ""
 deterministicPassword: true
 torOnly: false
 releaseNotes: >-
-  Pre-Alpha 5 validation candidate 4, не финальный v0.1.0-alpha.5. Package
-  0.1.0-alpha.4.3-umbrel.4 carries FoxForge commit
-  c11f7145b4354aa79c8f0fad223648240e652bac and immutable amd64/arm64 digest
-  sha256:75d656bafcafb4e0e566548f6cca941244d29fef1bbc5be98e425f375246056a.
-  Candidate 4 сохраняет fail-closed X2D material routing из Candidate 3:
-  compiler-owned toolhead, повторную проверку source/topology перед submit,
-  Bambu project_file nozzle_mapping только из доказанного маршрута; External 254/255
-  сохраняются через ams_mapping2 без угадывания сопла. Дополнительно Candidate 4
-  добавляет operator-facing 3MF material binding review, безопасные подсказки
-  приватных подсетей для Bambu discovery, Material Topology UI с явными
-  fixed/dynamic/unknown/stale состояниями и закрытие EN/RU/UK responsive
-  интерфейса на phone/tablet/desktop/ultrawide. Физическая проверка Raspberry
-  Pi 5 + Umbrel + X2D + AMS 2 Pro обязательна до выпуска Alpha 5.
+  Pre-Alpha 5 validation candidate 5, не финальный v0.1.0-alpha.5. Package
+  0.1.0-alpha.4.3-umbrel.5 carries FoxForge commit
+  0351c659f2d2845fb83bc0b1802c4d9ebeeef1f2 and immutable amd64/arm64 digest
+  sha256:00c699effbe9b245a4916a8c301df5b67435d75dd42fad02cc5bbf0ca51aec39.
+  Candidate 5 заменяет выведенный из first-print acceptance Candidate 4 и
+  закрывает routing audit: повреждённые или неоднозначные 3MF toolhead metadata
+  теперь fail-closed, а readiness оценивается для выбранной plate без ослабления
+  глобальных и selected-plate blockers. Сохраняются compiler-owned toolhead,
+  повторная проверка source/topology перед submit, Bambu project_file
+  nozzle_mapping только из доказанного маршрута и External 254/255 через
+  ams_mapping2 без угадывания сопла. Candidate 5 также включает capability-based
+  Printer Detail refactor и staged Add Printer Provider → Connection → Identity →
+  Verify с инвалидированием проверки при любом изменении payload. Физическая
+  проверка Raspberry Pi 5 + Umbrel + X2D + AMS 2 Pro обязательна до Alpha 5.
