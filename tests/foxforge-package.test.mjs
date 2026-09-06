@@ -9,10 +9,10 @@ const packageContract = JSON.parse(
   await readFile(new URL('../my3d-foxforge/foxforge-package.json', import.meta.url), 'utf8'),
 );
 
-const sourceSha = 'e7d4d77612890157203239f8d97a6c4abc328859';
-const digest = 'sha256:877ab4a53a6c8106482fa25d88f1f4ab52d26ba04f5be271e7f5efdd557258d1';
-const image = `ghcr.io/mikefox303/foxforge:sha-e7d4d77@${digest}`;
-const packageVersion = '0.1.0-alpha.4.3-umbrel.1';
+const sourceSha = '37b253f385c19451c7ea075a4a4d12378cf17cf2';
+const digest = 'sha256:e550c8026ed6ec80e973d91fe6d96cc1474d537ca87de7875ec54f4a03aaaa4f';
+const image = `ghcr.io/mikefox303/foxforge:sha-37b253f@${digest}`;
+const packageVersion = '0.1.0-alpha.4.3-umbrel.2';
 
 test('FoxForge package pins the exact Pre-Alpha 5 validation image', () => {
   assert.ok(compose.includes(`    image: ${image}\n`));
@@ -31,10 +31,17 @@ test('FoxForge validation package records a published base and explicit candidat
   assert.equal(packageContract.targetReleaseVersion, '0.1.0-alpha.5');
   assert.equal(packageContract.sourceCommit, sourceSha);
   assert.equal(packageContract.imageDigest, digest);
-  assert.match(manifest, /^version: "0\.1\.0-alpha\.4\.3-umbrel\.1"$/m);
-  assert.match(readme, /package-local identity `0\.1\.0-alpha\.4\.3-umbrel\.1`/);
+  assert.match(manifest, /^version: "0\.1\.0-alpha\.4\.3-umbrel\.2"$/m);
+  assert.match(readme, /package-local identity `0\.1\.0-alpha\.4\.3-umbrel\.2`/);
   assert.match(readme, /base remains tied to the latest published FoxForge release/);
   assert.match(readme, /must not be treated as the final Alpha 5 release/);
+});
+
+test('FoxForge candidate 2 documents the release-audit setup safety fixes', () => {
+  assert.match(readme, /Update Printer now performs the same test-before-save check/);
+  assert.match(readme, /same-key retry replays the same safe error/);
+  assert.match(manifest, /Update Printer.*проверяет новое соединение/s);
+  assert.match(manifest, /idempotency key.*terminal error/s);
 });
 
 test('FoxForge uses authenticated Umbrel App Proxy without host privileges', () => {
