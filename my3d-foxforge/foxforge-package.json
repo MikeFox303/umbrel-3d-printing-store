@@ -4,7 +4,7 @@
   "packageRole": "pre-alpha-5-validation-candidate",
   "baseReleaseVersion": "0.1.0-alpha.4.3",
   "targetReleaseVersion": "0.1.0-alpha.5",
-  "sourceCommit": "0351c659f2d2845fb83bc0b1802c4d9ebeeef1f2",
-  "imageDigest": "sha256:00c699effbe9b245a4916a8c301df5b67435d75dd42fad02cc5bbf0ca51aec39",
+  "sourceCommit": "a2a0c54f392de8085a6a9635920a6da465d8fbe8",
+  "imageDigest": "sha256:d6eef7e5f564ae3d639d39e4737368a97ff6724c6ab874151a839a0ed408884b",
   "reason": "Pre-Alpha 5 validation keeps application write authentication enabled, requires explicit memory-only operator unlock, and retains the Umbrel App Proxy as a separate defense-in-depth boundary."
 }
