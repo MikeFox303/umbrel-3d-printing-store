@@ -2,7 +2,7 @@ manifestVersion: 1.1
 id: my3d-foxforge
 name: FoxForge
 category: automation
-version: "0.1.0-alpha.4.3-umbrel.5"
+version: "0.1.0-alpha.4.3-umbrel.6"
 tagline: Единое управление Bambu Lab и Moonraker/Klipper
 description: >-
   FoxForge — open-source self-hosted платформа управления 3D-принтерами с
@@ -21,17 +21,18 @@ path: ""
 deterministicPassword: true
 torOnly: false
 releaseNotes: >-
-  Pre-Alpha 5 validation candidate 5, не финальный v0.1.0-alpha.5. Package
-  0.1.0-alpha.4.3-umbrel.5 carries FoxForge commit
-  0351c659f2d2845fb83bc0b1802c4d9ebeeef1f2 and immutable amd64/arm64 digest
-  sha256:00c699effbe9b245a4916a8c301df5b67435d75dd42fad02cc5bbf0ca51aec39.
-  Candidate 5 заменяет выведенный из first-print acceptance Candidate 4 и
-  закрывает routing audit: повреждённые или неоднозначные 3MF toolhead metadata
-  теперь fail-closed, а readiness оценивается для выбранной plate без ослабления
-  глобальных и selected-plate blockers. Сохраняются compiler-owned toolhead,
-  повторная проверка source/topology перед submit, Bambu project_file
-  nozzle_mapping только из доказанного маршрута и External 254/255 через
-  ams_mapping2 без угадывания сопла. Candidate 5 также включает capability-based
-  Printer Detail refactor и staged Add Printer Provider → Connection → Identity →
-  Verify с инвалидированием проверки при любом изменении payload. Физическая
-  проверка Raspberry Pi 5 + Umbrel + X2D + AMS 2 Pro обязательна до Alpha 5.
+  Pre-Alpha 5 validation candidate 6, не финальный v0.1.0-alpha.5. Package
+  0.1.0-alpha.4.3-umbrel.6 carries FoxForge commit
+  a2a0c54f392de8085a6a9635920a6da465d8fbe8 and immutable amd64/arm64 digest
+  sha256:d6eef7e5f564ae3d639d39e4737368a97ff6724c6ab874151a839a0ed408884b.
+  Candidate 5 выведен из physical acceptance после реальной проверки X2D:
+  Docker/LAN discovery и MQTT authentication проходили, но FoxForge ошибочно
+  требовал gcode_state в initial incremental push_status и поэтому завершал
+  authoritative save preflight как initial_state_timeout. Candidate 6 принимает
+  валидный state-bearing partial push_status без ослабления MQTT authentication,
+  а также поддерживает X2D/H2-family vir_slot как полный список внешних источников
+  с приоритетом над legacy vt_tray. Сохраняются routing-audit fail-closed guards,
+  TOOLHEAD_METADATA_INVALID, compiler-owned toolhead/nozzle mapping, staged Add
+  Printer Provider → Connection → Identity → Verify и повторный backend preflight
+  перед записью. Физическая проверка Raspberry Pi 5 + Umbrel + X2D + AMS 2 Pro
+  должна быть повторена на Candidate 6 до Alpha 5; физический Start пока запрещён.
