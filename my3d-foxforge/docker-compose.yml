@@ -7,7 +7,7 @@ services:
       APP_PORT: 8000
 
   server:
-    image: ghcr.io/mikefox303/foxforge:sha-0351c65@sha256:00c699effbe9b245a4916a8c301df5b67435d75dd42fad02cc5bbf0ca51aec39
+    image: ghcr.io/mikefox303/foxforge:sha-78ace6f@sha256:b01f1d44199a4413167ee2369c0dfbcafa602312442772d27de18e04c24ed0eb
     restart: on-failure
     init: true
     stop_grace_period: 30s
@@ -18,6 +18,7 @@ services:
       FOXFORGE_DATA_DIR: /data
       FOXFORGE_CONFIG: /data/config.json
       FOXFORGE_COMMAND_TOKEN: "${APP_PASSWORD}"
+      FOXFORGE_FILAMENT_ACCOUNTING_MODE: bambu-validation
     volumes:
       - ${APP_DATA_DIR}/data:/data
     healthcheck:
