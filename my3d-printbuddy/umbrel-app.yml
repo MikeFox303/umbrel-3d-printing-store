@@ -2,7 +2,7 @@ manifestVersion: 1.1
 id: my3d-printbuddy
 name: Printbuddy
 category: automation
-version: "0.2.5.1-umbrel.1"
+version: "0.2.5.2-umbrel.1"
 tagline: Единая панель управления 3D-принтерами
 description: >-
   Неофициальный Community App package для Printbuddy — self-hosted платформы
@@ -20,7 +20,9 @@ dependencies: []
 path: ""
 torOnly: false
 releaseNotes: >-
-  Первый UmbrelOS-пакет Printbuddy. Используется стабильный upstream-релиз
-  v0.2.5.1 с multi-architecture Docker image для amd64/arm64. Включён host
-  networking для локального обнаружения принтеров, камер и Virtual Printer;
-  данные и логи сохраняются в каталоге приложения Umbrel.
+  Обновление до стабильного upstream Printbuddy v0.2.5.2. Релиз добавляет Notify
+  Live Activities, расширенные фильтры уведомлений для нескольких принтеров,
+  улучшенное routed-subnet discovery и исправления очереди, Virtual Printer,
+  inventory/AMS/CFS. Сохраняются multi-architecture Docker image для amd64/arm64,
+  host networking для локального обнаружения/Virtual Printer и постоянные data/logs
+  каталоги Umbrel.
