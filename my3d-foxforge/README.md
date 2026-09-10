@@ -2,54 +2,77 @@
 
 This package installs FoxForge behind the Umbrel App Proxy and persists all application state under the app data directory.
 
-The current Store package is a **Pre-Alpha 5 physical-validation candidate**, not the final `v0.1.0-alpha.5` release. Candidate 5 is built from FoxForge source commit `0351c659f2d2845fb83bc0b1802c4d9ebeeef1f2` and is intended to validate the real Raspberry Pi 5 + Umbrel + Bambu X2D + AMS 2 Pro path before the semantic Alpha 5 release is created.
+The current Store package is **Pre-Alpha 5 physical-validation Candidate 6**, not the final `v0.1.0-alpha.5` release.
 
-The Store version uses the package-local identity `0.1.0-alpha.4.3-umbrel.5`. The `0.1.0-alpha.4.3` base remains tied to the latest published FoxForge release for upstream-version auditing, while `-umbrel.5` identifies the fifth installable physical-validation package. The exact newer FoxForge source commit and immutable image digest are recorded separately in the package contract and release notes. This package is a validation candidate only and must not be treated as the final Alpha 5 release.
+Candidate 6 exact application identity:
 
-Candidate 4 is retired for first-print acceptance. Candidate 5 starts a new evidence boundary; Candidate 1/2/3/4 physical evidence must not be relabeled or carried across this digest.
+- FoxForge source: `78ace6f7b7412aa0d3fc58bed095aecdf9920f94`;
+- image tag: `ghcr.io/mikefox303/foxforge:sha-78ace6f`;
+- immutable multi-architecture digest: `sha256:b01f1d44199a4413167ee2369c0dfbcafa602312442772d27de18e04c24ed0eb`;
+- platforms: `linux/amd64`, `linux/arm64`;
+- Umbrel package: `0.1.0-alpha.4.3-umbrel.6`;
+- semantic target: `v0.1.0-alpha.5` — still unpublished.
 
-This remains early-alpha software. Automated package/runtime checks do not replace representative physical validation on Bambu X2D, Moonraker/OpenKE or Raspberry Pi 5/UmbrelOS.
+The `0.1.0-alpha.4.3` base remains tied to the latest published FoxForge semantic release for upstream-version auditing. The `-umbrel.6` suffix identifies the sixth installable Pre-Alpha 5 validation package. Candidate 5 is historical and must not be used as Candidate 6 evidence; Candidate 1–5 physical evidence must not be relabeled or carried across this new source/image identity.
 
-## What this validation candidate adds
+This remains early-alpha software. Automated package/runtime checks do not replace representative physical validation on Raspberry Pi 5/UmbrelOS, Bambu X2D + AMS 2 Pro, or Moonraker/OpenKE.
 
-Compared with the current Alpha 4.3 release package, candidate 5 includes the Pre-Alpha 5 Bambu connection, routing-safety and interface work already merged into FoxForge `main`:
+## What Candidate 6 adds
 
-- Add Printer validates a Bambu connection before persistence, so failed credentials/reachability do not leave a dead configured printer;
-- Update Printer performs the same test-before-save check and keeps the previous working configuration if edited host/serial/credentials cannot connect;
-- if the persistent replacement adapter cannot connect after an update, FoxForge rolls config/secrets/fleet state back to the previous printer configuration;
-- failed Add/Update connection attempts complete durable idempotency as terminal sanitized failures, so a same-key retry replays the same safe error instead of returning `reconciliation_required` or executing the side effect again;
-- stable Bambu printer IDs are derived from the normalized serial number;
-- Bambu LAN discovery/manual entry and model selection are available from the web UI;
-- setup failures use normalized codes rather than raw Python/vendor exceptions;
-- EN/RU/UK guidance distinguishes unreachable printer, rejected LAN credentials, MQTT timeout, initial-state timeout and internal adapter failures;
-- per-printer reconnect supervision retains secret-safe normalized failure context across recovery;
-- the printer **Diagnostics** tab shows reconnect attempts, failure category, retry state and recovery time without exposing raw transport messages or credentials;
-- X2D `.3mf` material requirements are inspected before dispatch and explicit physical material bindings are compiled against the live vendor-neutral material topology;
-- queue assessment persists the compiler-owned toolhead decision before adapter assessment and repeats routing preparation before a later dispatch;
-- the Bambu adapter revalidates source presence, topology freshness and the compiled toolhead from one native snapshot immediately before transport submission;
-- complete compiled Bambu routes serialize a per-material `project_file.nozzle_mapping`; partial or unproven nozzle mappings fail closed;
-- Bambu external sources 254/255 remain `-1` in flat `ams_mapping`, retain their real source IDs in `ams_mapping2`, and obtain a nozzle only from the proven toolhead route;
-- the queue UI inspects staged 3MF print plans, requires explicit operator material-source bindings, shows compatibility/route blockers and never sends a client-owned toolhead decision;
-- Bambu discovery can suggest bounded server-visible RFC1918 subnets, while keeping manual CIDR entry and the same authenticated discovery/preflight boundary;
-- Printer Detail renders typed Material Topology routes with friendly source/toolhead labels and explicit `fixed`, `dynamic`, `unknown` and stale states instead of inferring routing from a Bambu model name;
-- EN/RU/UK localization and responsive acceptance cover the approved 390x844, 900x1024, 1920x1080 and 5120x1440 interface targets;
-- Candidate 5 closes the routing audit that retired Candidate 4: present-but-invalid project/toolhead metadata cannot collapse into an apparently unconstrained route, selected unsafe metadata emits `TOOLHEAD_METADATA_INVALID`, and a fixed physical source cannot mask corrupt slicer intent;
-- selected-plate routing readiness no longer becomes blocked solely because a different unselected plate is unroutable, while global and selected-plate safety blockers remain fail-closed;
-- the application shell, standard printer cards and Control/Materials tabs are capability-driven rather than model-name driven;
-- Add Printer is now an explicit **Provider → Connection → Identity → Verify** workflow; successful verification is bound to the exact normalized payload, any later payload change invalidates it immediately, and Save remains disabled until the current payload is verified again;
-- the backend still repeats authoritative preflight immediately before durable printer persistence;
-- FoxForge does not auto-pick a spool by material/color and does not guess a left/right nozzle when routing is ambiguous;
-- existing live Bambu state, AMS/AMS 2 Pro material observation and guarded Pause/Resume/Cancel remain available for physical validation.
+Compared with Candidate 5, Candidate 6 carries the full C6 software milestone and its exact software gate:
 
-P3 automatic filament accounting remains frozen during this milestone.
+- staged **Provider → Connection → Identity → Verify** Add Printer flow;
+- Bambu connection preflight before persistence and rollback-safe Update Printer behavior;
+- stable Bambu printer identity derived from normalized serial number;
+- normalized, secret-safe setup/reconnect diagnostics;
+- capability-driven application shell, printer cards, Control and Materials views;
+- typed Material Topology with explicit `fixed`, `dynamic`, `unknown` and stale route states;
+- Bambu thermal telemetry surfaced through typed capabilities rather than model-name switches;
+- immutable staged `.3mf` inspection and plate-scoped material requirements;
+- explicit operator material-source binding before routed Bambu dispatch;
+- compiler-owned toolhead routing with fresh source/topology revalidation immediately before submit;
+- fail-closed handling of malformed or ambiguous selected-plate toolhead metadata, including `TOOLHEAD_METADATA_INVALID`;
+- `project_file.nozzle_mapping` only from a complete proven route;
+- Bambu external sources 254/255 remain `-1` in flat `ams_mapping`, retain their real IDs in `ams_mapping2`, and receive a nozzle only from the compiled route;
+- queue/inventory/accounting operator UI with exact decimal mass handling and explicit reconciliation controls;
+- guarded Pause/Resume/Cancel using the observed vendor job identity;
+- EN/RU/UK localization and responsive acceptance across phone, tablet, desktop and ultrawide targets.
+
+FoxForge never auto-picks a spool by color/material and never guesses a left/right nozzle when routing evidence is ambiguous.
+
+## Candidate 6 filament-accounting validation mode
+
+The generic FoxForge runtime default remains `FOXFORGE_FILAMENT_ACCOUNTING_MODE=disabled`. This Umbrel Candidate 6 package deliberately sets:
+
+```text
+FOXFORGE_FILAMENT_ACCOUNTING_MODE=bambu-validation
+```
+
+This is a provider-scoped physical-validation gate, not blanket multi-vendor enablement:
+
+- automatic pre-dispatch accounting enforcement applies only to printers whose adapter kind is `bambu`;
+- Moonraker/Klipper and unknown/future providers remain outside this automatic enforcement mode;
+- planning uses exact decimal gram estimates and explicit FoxForge spool assignments;
+- accounting does not choose the physical source or toolhead — the material-routing compiler remains authoritative;
+- FoxForge does not infer consumed grams from print progress or vendor telemetry;
+- confirmed completion settles the reserved estimate exactly once;
+- attempted/started failed or cancelled jobs require explicit actual-mass reconciliation;
+- `INDETERMINATE` outcomes keep reservations held until the operator reconciles the real outcome;
+- assignment drift or insufficient capacity blocks rather than silently changing the reserved spool.
+
+Candidate 6 physical validation must therefore verify both routed Bambu dispatch and weighed-spool accounting evidence before this mode can be considered accepted for Alpha 5.
 
 ## Write access on Umbrel
 
-FoxForge keeps application authorization separate from Umbrel App Proxy authentication. The package keeps application write authentication enabled and uses Umbrel's per-app password as the operator credential.
+FoxForge keeps application authorization separate from Umbrel App Proxy authentication. The package keeps application write authentication enabled and maps Umbrel's deterministic per-app password to the FoxForge operator credential:
 
-To use protected actions such as **Add Printer**, inventory mutations, queue mutations or Pause/Resume/Cancel:
+```text
+APP_PASSWORD → FOXFORGE_COMMAND_TOKEN
+```
 
-1. open the FoxForge app through Umbrel;
+To use protected actions such as **Add Printer**, inventory mutations, accounting actions, queue mutations or Pause/Resume/Cancel:
+
+1. open FoxForge through Umbrel;
 2. choose **Unlock writes** in FoxForge;
 3. enter the FoxForge app password shown by Umbrel;
 4. FoxForge keeps that credential only in JavaScript memory for the current tab and sends it only for protected commands;
@@ -57,20 +80,22 @@ To use protected actions such as **Add Printer**, inventory mutations, queue mut
 
 Umbrel App Proxy remains defense in depth; it is not treated as the FoxForge application principal. Direct backend access without the correct operator credential fails closed for protected commands.
 
+The package does **not** use host networking, privileged mode, or the Docker socket.
+
 ## First start
 
 Install **FoxForge** from this Community App Store and open it once. The server creates and maintains:
 
 - `data/config.json` — persistent non-secret printer connection configuration;
 - `data/secrets.json` — application-owned secret store for Bambu LAN access codes and Moonraker API keys;
-- `data/foxforge.sqlite3` — durable queue, inventory, command-idempotency and audit state;
-- `data/artifacts/` — content-addressed staged `.gcode` / `.3mf` payloads after files are uploaded through the print workflow.
+- `data/foxforge.sqlite3` — durable queue, inventory, accounting, command-idempotency and audit state;
+- `data/artifacts/` — content-addressed staged `.gcode` / `.3mf` payloads.
 
 Use **Add Printer** in the FoxForge web UI to configure supported printers. Do not manually place credentials in `config.json`; current FoxForge persists Bambu access codes and Moonraker API keys through its SecretStore boundary. Legacy inline credentials are migrated into `secrets.json` on startup. The complete `/data` directory is credential-bearing data and must be treated as sensitive.
 
 ## Bambu Lab LAN setup
 
-Use **Add Printer → Bambu Lab (LAN mode)**. The staged wizard is **Provider → Connection → Identity → Verify**. You can scan an explicit local subnet or enter the printer manually. FoxForge asks for:
+Use **Add Printer → Bambu Lab (LAN mode)**. The staged wizard is **Provider → Connection → Identity → Verify**. You can scan a bounded server-visible private subnet or enter the printer manually. FoxForge asks for:
 
 - display name;
 - Bambu model;
@@ -129,13 +154,13 @@ The non-secret persisted shape is equivalent to:
 }
 ```
 
-Current FoxForge applies explicit destination/redirect/address-resolution policy to Moonraker endpoints.
+Current FoxForge applies explicit destination/redirect/address-resolution policy to Moonraker endpoints. Candidate 6 does not enable automatic Moonraker filament-accounting enforcement.
 
 ## Mixed fleet
 
 Bambu and Moonraker printers can coexist in the same FoxForge instance. `printerId` values must remain unique and stable.
 
-A printer that is powered off or temporarily unreachable does not prevent FoxForge from starting. Per-printer reconnect supervision retries independently with bounded backoff/jitter. Open the printer's **Diagnostics** tab to inspect the normalized reconnect history without exposing raw vendor errors.
+A printer that is powered off or temporarily unreachable does not prevent FoxForge from starting. Per-printer reconnect supervision retries independently with bounded backoff/jitter. Open the printer's **Diagnostics** tab to inspect normalized reconnect history without exposing raw vendor errors.
 
 ## Safe print workflow
 
@@ -144,46 +169,52 @@ For supported print files the browser workflow is intentionally staged:
 1. select a local `.gcode` or `.3mf` file;
 2. FoxForge calculates SHA-256 in the browser and uploads file bytes only;
 3. the backend verifies and stores the content-addressed artifact under `/data/artifacts`;
-4. for a routed Bambu `.3mf`, FoxForge inspects the immutable staged artifact, exposes its material requirements and requires explicit physical source bindings;
+4. for a routed Bambu `.3mf`, FoxForge inspects the immutable staged artifact, exposes selected-plate material requirements and requires explicit physical source bindings;
 5. FoxForge validates slicer toolhead metadata and fails closed if required project metadata is malformed, ambiguous, encrypted, oversized or otherwise invalid;
-6. FoxForge compiles each binding against current material-system/topology snapshots and persists the proven toolhead route before adapter assessment;
-7. enqueue the artifact for a selected printer;
-8. press **Start** separately to dispatch the print;
-9. immediately before Bambu submit, FoxForge revalidates that the selected source is still present, topology is current and the compiled source→toolhead route still holds;
-10. only a complete proven route can produce Bambu `ams_mapping` / `ams_mapping2` / `nozzle_mapping` fields;
-11. if the remote side effect becomes `INDETERMINATE`, reconcile whether the print started instead of retrying blindly.
+6. FoxForge compiles each binding against current material-system/topology snapshots and persists the proven toolhead route;
+7. Candidate 6 accounting requires an explicit filament plan/reservation for the Bambu queue entry before dispatch;
+8. enqueue the artifact for the selected printer;
+9. press **Start** separately to dispatch the print;
+10. immediately before Bambu submit, FoxForge revalidates source presence, topology freshness, compiled source→toolhead routing and provider-scoped accounting readiness;
+11. only a complete proven route can produce Bambu `ams_mapping` / `ams_mapping2` / `nozzle_mapping` fields;
+12. if the remote side effect becomes `INDETERMINATE`, reconcile whether the print started instead of retrying blindly.
 
 The client filesystem path is never sent as a server-side path, receipt-bearing jobs are never blindly redispatched, and routing ambiguity is a blocker rather than an invitation to choose a source or nozzle heuristically.
 
-## Pre-Alpha 5 physical validation sequence
+## Pre-Alpha 5 Candidate 6 physical validation sequence
 
-Candidate 5 must not be promoted to final Alpha 5 based only on Store CI. On the real Raspberry Pi 5/Umbrel + X2D + AMS 2 Pro deployment, validate at minimum:
+Candidate 6 must not be promoted to final Alpha 5 based only on Store CI. On the real Raspberry Pi 5/Umbrel + X2D + AMS 2 Pro deployment, validate at minimum:
 
-1. install/update this exact digest-pinned package and confirm the installed package/image identity matches Candidate 5;
+1. install/update this exact digest-pinned package and confirm package `0.1.0-alpha.4.3-umbrel.6`, source `78ace6f7b7412aa0d3fc58bed095aecdf9920f94`, and image digest `sha256:b01f1d44199a4413167ee2369c0dfbcafa602312442772d27de18e04c24ed0eb`;
 2. unlock writes from the GUI using the FoxForge app password shown by Umbrel and confirm a browser reload does not retain it;
-3. add the X2D through the staged GUI wizard with its real serial, host and LAN access code; after a successful Verify, change one field and confirm Save disables until re-verification;
-4. confirm live connection/state and AMS 2 Pro slots/material state, including the two external feed sources when reported;
-5. edit one connection field to an intentionally invalid value and confirm the update fails without replacing the working saved printer, then restore the valid form values;
-6. retry a failed Add/Update submission without changing its browser command identity when practical and confirm FoxForge returns the same sanitized terminal outcome instead of executing the mutation twice;
-7. restart FoxForge and confirm the saved printer reconnects without being re-added;
-8. temporarily make the X2D unreachable, confirm a sanitized reconnect incident appears, then restore reachability and confirm recovery;
-9. stage a known-safe `.3mf`, inspect its selected plate/material requirements, explicitly bind each requirement to a currently loaded physical source and review the compiled toolhead/nozzle path;
-10. confirm corrupt or ambiguous selected-plate toolhead metadata remains blocked and is never rescued by a fixed source route;
-11. only after the no-print checks above pass, press **Start** separately and verify FTPS upload + MQTT `project_file` acknowledgement on the physical X2D, recording sanitized `ams_mapping`, `ams_mapping2` and `nozzle_mapping` evidence;
-12. verify the physical X2D starts exactly one intended job and FoxForge observes the same vendor job/progress;
-13. during the test print, verify guarded Pause, Resume and Cancel behavior against the same observed vendor job identity;
-14. record failures as well as successes before changing any physical-validation status in the FoxForge repository.
+3. add the X2D through the staged GUI wizard with its real serial, host and LAN access code; after successful Verify, change one field and confirm Save disables until re-verification;
+4. confirm live X2D connection, job state and Bambu thermal telemetry;
+5. confirm the real material fixture is represented without guessing: AMS 2 Pro A1–A4 loaded with PETG, External Left empty, External Right loaded with PLA, and both external routes/toolheads shown explicitly by typed Material Topology;
+6. edit one connection field to an intentionally invalid value and confirm Update fails without replacing the working saved printer, then restore the valid form values;
+7. retry a failed Add/Update submission without changing its browser command identity when practical and confirm FoxForge replays the same sanitized terminal outcome instead of executing the mutation twice;
+8. restart FoxForge and confirm the saved printer reconnects without being re-added;
+9. temporarily make the X2D unreachable, confirm a sanitized reconnect incident appears, then restore reachability and confirm recovery;
+10. create/assign the test spool records needed for the selected Bambu material sources and record their measured starting mass;
+11. stage a known-safe `.3mf`, inspect its selected plate/material requirements, explicitly bind each requirement to a currently loaded physical source, review the compiler-owned toolhead/nozzle path, and create the explicit accounting plan;
+12. confirm corrupt or ambiguous selected-plate toolhead metadata remains blocked and is never rescued by a fixed source route;
+13. only after the no-print checks above pass, press **Start** separately and verify FTPS upload + MQTT `project_file` acknowledgement on the physical X2D, recording sanitized `ams_mapping`, `ams_mapping2` and `nozzle_mapping` evidence;
+14. verify the physical X2D starts exactly one intended job and FoxForge observes the same vendor job/progress;
+15. during the test print, verify guarded Pause, Resume and Cancel behavior only against the same observed vendor job identity when the chosen test procedure requires those controls;
+16. after a completed accounting test, weigh/measure the relevant spool and compare the real change with the FoxForge reservation/settlement evidence; do not infer actual use from printer progress;
+17. separately exercise a safe reconciliation scenario for a started/attempted non-completed outcome and confirm explicit reconciliation is required rather than an automatic guessed debit;
+18. record failures as well as successes before changing any physical-validation status in the FoxForge repository.
 
-The exact source commit, immutable image digest and Store merge commit must be recorded with the validation evidence. Any implementation change after this candidate invalidates affected physical evidence and requires another immutable candidate.
+The exact source commit, immutable image digest and eventual Store merge commit must be recorded with the validation evidence. Any application/image/package-definition change after this candidate invalidates affected physical evidence and requires another immutable candidate.
 
 ## Current limitations
 
 - this validation candidate is **not** the final `v0.1.0-alpha.5` release;
 - Bambu Virtual Printer is not included;
-- automatic queue-to-filament consumption accounting (P3) remains frozen behind the physical/deployment validation gate;
+- Bambu automatic filament accounting is enabled only as the Candidate 6 physical-validation mode and is not yet accepted as production behavior;
+- Moonraker/Klipper automatic filament accounting remains disabled pending its own evidence gate;
 - persistent farm scheduling/distributed leases are not implemented yet;
 - deep Bambu AMS/CFS operations such as drying, HMS actions, K profiles and broader FTS controls remain future typed capabilities;
-- physical Bambu X2D validation is still required for transport, certificate, material routing, project delivery, job control and lifecycle behavior;
+- physical Bambu X2D validation is still required for transport, certificate, material routing, project delivery, job control, accounting and lifecycle behavior;
 - physical Moonraker/OpenKE validation remains required for endpoint-policy compatibility, upload/start/job-control/lifecycle behavior;
 - representative Raspberry Pi 5/UmbrelOS install, restart/persistence, real proxy/write path, printer-network reachability and SSE reconnect/resync validation remain required.
 
@@ -191,4 +222,4 @@ The interface supports English, Russian and Ukrainian.
 
 ## Backup and upgrade
 
-Back up the complete FoxForge app `data/` directory before upgrading early alpha versions. Current `/data` contains configuration, SQLite state, staged artifacts and credential-bearing/recovery material, so backups must be treated as sensitive.
+Back up the complete FoxForge app `data/` directory before upgrading early alpha versions. Current `/data` contains configuration, SQLite queue/inventory/accounting state, staged artifacts and credential-bearing/recovery material, so backups must be treated as sensitive.
