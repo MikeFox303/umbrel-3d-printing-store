@@ -4,7 +4,7 @@
 
 ## Что входит
 
-- upstream Printbuddy `v0.2.5.1`;
+- upstream Printbuddy `v0.2.5.2`;
 - `linux/arm64` для Raspberry Pi 4/5 и `linux/amd64`;
 - host networking, как рекомендует upstream для Linux;
 - постоянные данные в `${APP_DATA_DIR}/data`;
