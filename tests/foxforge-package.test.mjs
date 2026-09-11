@@ -9,29 +9,33 @@ const packageContract = JSON.parse(
   await readFile(new URL('../my3d-foxforge/foxforge-package.json', import.meta.url), 'utf8'),
 );
 
-const sourceSha = '78ace6f7b7412aa0d3fc58bed095aecdf9920f94';
-const digest = 'sha256:b01f1d44199a4413167ee2369c0dfbcafa602312442772d27de18e04c24ed0eb';
-const imageTag = 'ghcr.io/mikefox303/foxforge:sha-78ace6f';
+const sourceSha = '4f769ca89d466d2cbe41360848b6343ec5a8eb36';
+const digest = 'sha256:0000e7a6c74056a0fff2e019c31a8cffc6d7fb2d3ec1fefdf587354a4d64c9b7';
+const imageTag = 'ghcr.io/mikefox303/foxforge:sha-4f769ca';
 const image = `${imageTag}@${digest}`;
-const packageVersion = '0.1.0-alpha.4.3-umbrel.6';
+const packageVersion = '0.1.0-alpha.4.3-umbrel.7';
 
 const regexEscape = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-test('FoxForge package pins the exact Candidate 6 immutable image', () => {
+test('FoxForge package pins the exact Candidate 7 immutable image', () => {
   assert.ok(compose.includes(`    image: ${image}\n`));
   assert.match(manifest, new RegExp(`^version: "${regexEscape(packageVersion)}"$`, 'm'));
   assert.doesNotMatch(compose, /:latest(?:@|\s|$)/);
   assert.ok(manifest.includes(sourceSha));
   assert.ok(manifest.includes(digest));
-  assert.ok(manifest.includes('Candidate 6'));
+  assert.ok(manifest.includes('Candidate 7'));
   assert.match(manifest, /not the final|не финальный/i);
-  assert.match(readme, /Pre-Alpha 5 physical-validation Candidate 6/);
-  assert.ok(readme.includes(sourceSha));
-  assert.ok(readme.includes(digest));
-  assert.ok(readme.includes(imageTag));
+
+  for (const value of [sourceSha, digest, imageTag, packageVersion]) {
+    assert.ok(readme.includes(value), `README missing immutable identity: ${value}`);
+  }
+  assert.match(readme, /Pre-Alpha 5 physical-validation Candidate 7/);
+  assert.match(readme, /Candidate 6 is historical/);
+  assert.match(readme, /Candidate 1–6 physical evidence must not be relabeled/);
+  assert.match(readme, /semantic target: `v0\.1\.0-alpha\.5` — still unpublished/);
 });
 
-test('Candidate 6 contract records one explicit package/source/accounting identity', () => {
+test('Candidate 7 contract records one explicit package/source/accounting identity', () => {
   assert.equal(packageContract.schemaVersion, 1);
   assert.equal(packageContract.packageRole, 'pre-alpha-5-validation-candidate');
   assert.equal(packageContract.packageVersion, packageVersion);
@@ -40,15 +44,28 @@ test('Candidate 6 contract records one explicit package/source/accounting identi
   assert.equal(packageContract.sourceCommit, sourceSha);
   assert.equal(packageContract.imageDigest, digest);
   assert.equal(packageContract.filamentAccountingMode, 'bambu-validation');
-  assert.match(readme, /Candidate 5 is historical/);
-  assert.match(readme, /Candidate 1–5 physical evidence must not be relabeled/);
-  assert.match(readme, /semantic target: `v0\.1\.0-alpha\.5` — still unpublished/);
+  assert.match(packageContract.reason, /Candidate 7 replaces the failed Candidate 6 physical identity/);
 });
 
-test('Candidate 6 carries the staged Bambu routing and capability-driven UI contract', () => {
+test('Candidate 7 records the real X2D Add Printer lifecycle replacement', () => {
   for (const expected of [
     'Provider → Connection → Identity → Verify',
-    'Update Printer',
+    'single backend-authoritative Add connection',
+    'per-session client ID',
+    'failed Add connection removes the transient fleet entry',
+    'Update Printer keeps its separate preflight and rollback path',
+    'Verify → Add',
+    'without an internal adapter error',
+  ]) {
+    assert.ok(readme.includes(expected), `missing Candidate 7 lifecycle statement: ${expected}`);
+  }
+
+  assert.match(manifest, /rapid overlapping\/reused Bambu MQTT sessions/);
+  assert.match(manifest, /per-session MQTT client IDs/);
+});
+
+test('Candidate 7 carries guarded Bambu routing and capability-driven UI contracts', () => {
+  for (const expected of [
     'capability-driven application shell',
     'typed Material Topology',
     'Bambu thermal telemetry',
@@ -59,17 +76,16 @@ test('Candidate 6 carries the staged Bambu routing and capability-driven UI cont
     'never auto-picks a spool',
     'never guesses a left/right nozzle',
   ]) {
-    assert.ok(readme.includes(expected), `missing Candidate 6 contract text: ${expected}`);
+    assert.ok(readme.includes(expected), `missing routing/UI contract: ${expected}`);
   }
 
-  assert.match(manifest, /staged Add Printer/);
   assert.match(manifest, /Material Topology/);
   assert.match(manifest, /thermal telemetry/);
   assert.match(manifest, /fail-closed compiler-owned 3MF routing/);
   assert.match(manifest, /AMS\/external source handling/);
 });
 
-test('Candidate 6 enables only the Bambu physical-validation accounting gate', () => {
+test('Candidate 7 enables only the Bambu physical-validation accounting gate', () => {
   assert.match(compose, /^\s*FOXFORGE_FILAMENT_ACCOUNTING_MODE:\s*bambu-validation\s*$/m);
   assert.equal(packageContract.filamentAccountingMode, 'bambu-validation');
   assert.match(packageContract.reason, /Bambu-only physical-validation accounting gate/);
@@ -86,8 +102,6 @@ test('Candidate 6 enables only the Bambu physical-validation accounting gate', (
   ]) {
     assert.ok(readme.includes(expected), `missing accounting safety statement: ${expected}`);
   }
-
-  assert.match(manifest, /Bambu-only physical-validation/);
 });
 
 test('FoxForge uses authenticated Umbrel App Proxy without host privileges', () => {
@@ -104,8 +118,6 @@ test('FoxForge package declares truthful application write authentication', () =
   assert.equal(packageContract.authMode, 'write-enabled');
   assert.equal(typeof packageContract.reason, 'string');
   assert.ok(packageContract.reason.length > 20);
-
-  // ADR 0005 deliberately rejects tokenless trusted-browser mode in production.
   assert.doesNotMatch(compose, /FOXFORGE_TRUSTED_BROWSER_SESSIONS:\s*["']?(?:true|1|yes|on)["']?\s*$/im);
   assert.match(compose, /^\s*FOXFORGE_COMMAND_TOKEN:\s*["']?\$\{APP_PASSWORD\}["']?\s*$/m);
   assert.match(packageContract.reason, /explicit FoxForge write authentication/);
@@ -142,10 +154,10 @@ test('FoxForge setup guide documents current secret-store and guarded print work
   assert.doesNotMatch(readme, /"api_key"\s*:/);
 });
 
-test('Candidate 6 physical checklist covers the real X2D/AMS2Pro acceptance fixture', () => {
+test('Candidate 7 physical checklist covers the real X2D/AMS2Pro acceptance fixture', () => {
   for (const expected of [
     'Raspberry Pi 5/Umbrel + X2D + AMS 2 Pro',
-    'package `0.1.0-alpha.4.3-umbrel.6`',
+    '0.1.0-alpha.4.3-umbrel.7',
     'add the X2D through the staged GUI wizard',
     'Bambu thermal telemetry',
     'AMS 2 Pro A1–A4 loaded with PETG',
@@ -154,13 +166,13 @@ test('Candidate 6 physical checklist covers the real X2D/AMS2Pro acceptance fixt
     'restart FoxForge',
     'temporarily make the X2D unreachable',
     'measured starting mass',
-    'create the explicit accounting plan',
+    'explicit accounting plan/reservation',
     'corrupt or ambiguous selected-plate toolhead metadata remains blocked',
     'FTPS upload + MQTT `project_file` acknowledgement',
     '`ams_mapping`, `ams_mapping2` and `nozzle_mapping` evidence',
-    'weigh/measure the relevant spool',
+    'weigh/measure the same spool',
     'explicit reconciliation is required',
   ]) {
-    assert.ok(readme.includes(expected), `missing Candidate 6 physical validation step: ${expected}`);
+    assert.ok(readme.includes(expected), `missing Candidate 7 physical validation step: ${expected}`);
   }
 });
