@@ -81,7 +81,7 @@ test('Candidate 7 carries guarded Bambu routing and capability-driven UI contrac
 
   assert.match(manifest, /Material Topology/);
   assert.match(manifest, /thermal telemetry/);
-  assert.match(manifest, /fail-closed compiler-owned 3MF routing/);
+  assert.match(manifest, /fail-closed compiler-owned 3MF\s+routing/);
   assert.match(manifest, /AMS\/external source handling/);
 });
 
