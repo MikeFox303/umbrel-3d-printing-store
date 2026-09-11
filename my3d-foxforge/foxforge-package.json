@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "authMode": "write-enabled",
   "packageRole": "pre-alpha-5-validation-candidate",
-  "packageVersion": "0.1.0-alpha.4.3-umbrel.6",
+  "packageVersion": "0.1.0-alpha.4.3-umbrel.7",
   "baseReleaseVersion": "0.1.0-alpha.4.3",
   "targetReleaseVersion": "0.1.0-alpha.5",
-  "sourceCommit": "78ace6f7b7412aa0d3fc58bed095aecdf9920f94",
-  "imageDigest": "sha256:b01f1d44199a4413167ee2369c0dfbcafa602312442772d27de18e04c24ed0eb",
+  "sourceCommit": "4f769ca89d466d2cbe41360848b6343ec5a8eb36",
+  "imageDigest": "sha256:0000e7a6c74056a0fff2e019c31a8cffc6d7fb2d3ec1fefdf587354a4d64c9b7",
   "filamentAccountingMode": "bambu-validation",
-  "reason": "Candidate 6 keeps explicit FoxForge write authentication, pins the exact C6-10-qualified multi-architecture image, enables the Bambu-only physical-validation accounting gate, and retains Umbrel App Proxy as a separate defense-in-depth boundary."
+  "reason": "Candidate 7 replaces the failed Candidate 6 physical identity after the real X2D Add Printer MQTT lifecycle blocker. It preserves explicit FoxForge write authentication, pins the exact replacement multi-architecture image, enables the Bambu-only physical-validation accounting gate, and retains Umbrel App Proxy as a separate defense-in-depth boundary."
 }
