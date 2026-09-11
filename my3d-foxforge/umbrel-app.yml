@@ -2,7 +2,7 @@ manifestVersion: 1.1
 id: my3d-foxforge
 name: FoxForge
 category: automation
-version: "0.1.0-alpha.4.3-umbrel.6"
+version: "0.1.0-alpha.4.3-umbrel.7"
 tagline: Единое управление Bambu Lab и Moonraker/Klipper
 description: >-
   FoxForge — open-source self-hosted платформа управления 3D-принтерами с
@@ -21,14 +21,18 @@ path: ""
 deterministicPassword: true
 torOnly: false
 releaseNotes: >-
-  Pre-Alpha 5 validation Candidate 6, не финальный v0.1.0-alpha.5. Package
-  0.1.0-alpha.4.3-umbrel.6 pins FoxForge source
-  78ace6f7b7412aa0d3fc58bed095aecdf9920f94 and immutable amd64/arm64 OCI digest
-  sha256:b01f1d44199a4413167ee2369c0dfbcafa602312442772d27de18e04c24ed0eb.
-  Candidate 6 включает полный C6-10 software gate, staged Add Printer,
-  capability-driven Printer Detail/Material Topology, Bambu thermal telemetry,
-  fail-closed compiler-owned 3MF routing, AMS/external source handling и
-  Bambu-only physical-validation режим автоматического учёта филамента. Umbrel
-  по-прежнему передаёт APP_PASSWORD как FoxForge operator token; host networking,
-  privileged mode и Docker socket не используются. Реальная проверка Raspberry
-  Pi 5 + Umbrel + X2D + AMS 2 Pro обязательна до публикации финального Alpha 5.
+  Pre-Alpha 5 validation Candidate 7, не финальный v0.1.0-alpha.5. Package
+  0.1.0-alpha.4.3-umbrel.7 pins FoxForge source
+  4f769ca89d466d2cbe41360848b6343ec5a8eb36 and immutable amd64/arm64 OCI digest
+  sha256:0000e7a6c74056a0fff2e019c31a8cffc6d7fb2d3ec1fefdf587354a4d64c9b7.
+  Candidate 7 replaces the failed Candidate 6 physical identity after the real X2D
+  Add Printer test exposed rapid overlapping/reused Bambu MQTT sessions. The new
+  build keeps staged Add Printer verification while using one backend-authoritative
+  live Add connection and per-session MQTT client IDs, with sanitized public errors
+  and server-side exception logging. It retains the capability-driven Printer Detail
+  and Material Topology UI, Bambu thermal telemetry, fail-closed compiler-owned 3MF
+  routing, AMS/external source handling and Bambu-only physical-validation filament
+  accounting mode. Umbrel still maps APP_PASSWORD to the FoxForge operator token;
+  host networking, privileged mode and Docker socket are not used. Raspberry Pi 5 +
+  Umbrel + X2D + AMS 2 Pro physical validation must be repeated on this exact identity
+  before final Alpha 5 publication.
