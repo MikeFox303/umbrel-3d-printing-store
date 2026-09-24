@@ -1,4 +1,4 @@
-name: Sync Bambuddy stable channel
+name: Sync Bambuddy stable package and channel
 
 on:
   push:
@@ -6,9 +6,10 @@ on:
     paths:
       - '.github/workflows/sync-bambuddy.yml'
       - 'scripts/sync-bambuddy-stable.mjs'
+      - 'scripts/sync-bambuddy-release.mjs'
       - 'scripts/smoke-bambuddy-multiarch.sh'
   schedule:
-    - cron: '23 */6 * * *'
+    - cron: '7,37 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -74,24 +75,32 @@ jobs:
 
           current_version="$(jq -r '.version // ""' channels/bambuddy/stable.json 2>/dev/null || true)"
           current_digest="$(jq -r '.digest // ""' channels/bambuddy/stable.json 2>/dev/null || true)"
+          package_version="$(sed -n 's/^version: "\([^"]*\)"$/\1/p' my3d-bambuddy/umbrel-app.yml | head -1)"
+          package_image="$(sed -n 's/^[[:space:]]*image:[[:space:]]*//p' my3d-bambuddy/docker-compose.yml | head -1)"
 
           echo "Current stable metadata: ${current_version:-<none>} ${current_digest:-<none>}"
+          echo "Current Umbrel package: ${package_version:-<none>} ${package_image:-<none>}"
           echo "Latest upstream stable: $version $digest"
 
-          if [[ -n "$current_version" ]]; then
-            highest="$(printf '%s\n%s\n' "$current_version" "$version" | sort -V | tail -1)"
-            if [[ "$highest" != "$version" ]]; then
-              echo "::warning title=Refusing Bambuddy stable downgrade::Store=$current_version upstream-latest=$version"
-              echo "changed=false" >> "$GITHUB_OUTPUT"
-              echo "version=$version" >> "$GITHUB_OUTPUT"
-              exit 0
+          for published_version in "$current_version" "$package_version"; do
+            if [[ -n "$published_version" && "$published_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+              highest="$(printf '%s\n%s\n' "$published_version" "$version" | sort -V | tail -1)"
+              if [[ "$highest" != "$version" ]]; then
+                echo "::warning title=Refusing Bambuddy stable downgrade::Published=$published_version upstream-latest=$version"
+                echo "changed=false" >> "$GITHUB_OUTPUT"
+                echo "version=$version" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
             fi
-          fi
+          done
 
-          if [[ "$current_version" == "$version" && "$current_digest" == "$digest" ]]; then
+          if [[ "$current_version" == "$version" &&
+                "$current_digest" == "$digest" &&
+                "$package_version" == "$version" &&
+                "$package_image" == "$immutable" ]]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "version=$version" >> "$GITHUB_OUTPUT"
-            echo "Store already publishes this tested stable digest."
+            echo "Store channel and Umbrel package already publish this tested stable digest."
             exit 0
           fi
 
@@ -145,7 +154,7 @@ jobs:
 
           echo "publish=true" >> "$GITHUB_OUTPUT"
 
-      - name: Update stable channel metadata
+      - name: Update stable channel and Umbrel package
         if: steps.upstream.outputs.changed == 'true' && steps.revalidate.outputs.publish == 'true'
         shell: bash
         run: |
@@ -153,8 +162,32 @@ jobs:
           node scripts/sync-bambuddy-stable.mjs \
             '${{ steps.upstream.outputs.version }}' \
             '${{ steps.upstream.outputs.digest }}'
+          node scripts/sync-bambuddy-release.mjs \
+            '${{ steps.upstream.outputs.version }}' \
+            '${{ steps.upstream.outputs.digest }}'
 
           jq -e '.channel == "stable" and .available == true and (.immutableImage | test("^ghcr.io/maziggy/bambuddy:[0-9.]+@sha256:[0-9a-f]{64}$"))' channels/bambuddy/stable.json >/dev/null
+          grep -Fxq 'version: "${{ steps.upstream.outputs.version }}"' my3d-bambuddy/umbrel-app.yml
+          grep -Eq '^    image: ghcr\.io/maziggy/bambuddy:${{ steps.upstream.outputs.version }}@sha256:[0-9a-f]{64}
+      - name: Run Store tests
+        if: steps.upstream.outputs.changed == 'true' && steps.revalidate.outputs.publish == 'true'
+        run: node --test tests/*.test.mjs
+
+      - name: Publish stable channel and Umbrel package
+        if: steps.upstream.outputs.changed == 'true' && steps.revalidate.outputs.publish == 'true'
+        shell: bash
+        env:
+          VERSION: ${{ steps.upstream.outputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add channels/bambuddy/stable.json my3d-bambuddy/docker-compose.yml my3d-bambuddy/umbrel-app.yml
+          git diff --cached --check
+          git diff --cached --quiet && exit 0
+          git commit -m "chore: publish Bambuddy stable ${VERSION}"
+          git push origin HEAD:main
+ my3d-bambuddy/docker-compose.yml
 
       - name: Run Store tests
         if: steps.upstream.outputs.changed == 'true' && steps.revalidate.outputs.publish == 'true'
