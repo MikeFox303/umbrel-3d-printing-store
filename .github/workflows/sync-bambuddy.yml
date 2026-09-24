@@ -168,7 +168,8 @@ jobs:
 
           jq -e '.channel == "stable" and .available == true and (.immutableImage | test("^ghcr.io/maziggy/bambuddy:[0-9.]+@sha256:[0-9a-f]{64}$"))' channels/bambuddy/stable.json >/dev/null
           grep -Fxq 'version: "${{ steps.upstream.outputs.version }}"' my3d-bambuddy/umbrel-app.yml
-          grep -Eq '^    image: ghcr\.io/maziggy/bambuddy:${{ steps.upstream.outputs.version }}@sha256:[0-9a-f]{64}
+          grep -Eq '^    image: ghcr\.io/maziggy/bambuddy:${{ steps.upstream.outputs.version }}@sha256:[0-9a-f]{64}$' my3d-bambuddy/docker-compose.yml
+
       - name: Run Store tests
         if: steps.upstream.outputs.changed == 'true' && steps.revalidate.outputs.publish == 'true'
         run: node --test tests/*.test.mjs
@@ -183,26 +184,6 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add channels/bambuddy/stable.json my3d-bambuddy/docker-compose.yml my3d-bambuddy/umbrel-app.yml
-          git diff --cached --check
-          git diff --cached --quiet && exit 0
-          git commit -m "chore: publish Bambuddy stable ${VERSION}"
-          git push origin HEAD:main
- my3d-bambuddy/docker-compose.yml
-
-      - name: Run Store tests
-        if: steps.upstream.outputs.changed == 'true' && steps.revalidate.outputs.publish == 'true'
-        run: node --test tests/*.test.mjs
-
-      - name: Publish stable channel metadata
-        if: steps.upstream.outputs.changed == 'true' && steps.revalidate.outputs.publish == 'true'
-        shell: bash
-        env:
-          VERSION: ${{ steps.upstream.outputs.version }}
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add channels/bambuddy/stable.json
           git diff --cached --check
           git diff --cached --quiet && exit 0
           git commit -m "chore: publish Bambuddy stable ${VERSION}"
