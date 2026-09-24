@@ -2,7 +2,7 @@ manifestVersion: 1.1
 id: my3d-bambuddy
 name: Bambuddy
 category: automation
-version: "1.2.5.5"
+version: "1.2.5.6"
 tagline: Локальное управление принтерами Bambu Lab
 description: >-
   Community App package для официального Bambuddy. Bambuddy — self-hosted
@@ -21,8 +21,5 @@ dependencies: []
 path: ""
 torOnly: false
 releaseNotes: >-
-  Официальный upstream Bambuddy 1.2.5.5 по immutable multi-arch digest.
-  Сохраняется рабочая конфигурация Umbrel Virtual Printer: network_mode host,
-  APP_HOST 192.168.0.100 и advertise/PASV адреса 192.168.0.100. Новые upstream
-  Stable/Beta версии сначала проходят Store CI и публикуются как channel
-  metadata; Bambuddy Manager применяет их с snapshot, health-check и rollback.
+  Официальный upstream Bambuddy 1.2.5.6, закреплённый по immutable multi-arch digest.
+  FilaMan-specific fork code не используется runtime; Spoolman — рекомендуемый inventory backend.
