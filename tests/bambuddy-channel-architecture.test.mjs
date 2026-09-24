@@ -6,11 +6,13 @@ const stableWorkflow = fs.readFileSync('.github/workflows/sync-bambuddy.yml', 'u
 const betaWorkflow = fs.readFileSync('.github/workflows/sync-bambuddy-beta.yml', 'utf8');
 const multiarchSmoke = fs.readFileSync('scripts/smoke-bambuddy-multiarch.sh', 'utf8');
 
-test('stable automation publishes channel metadata without mutating the Umbrel package', () => {
+test('stable automation publishes both channel metadata and the Umbrel package', () => {
   assert.match(stableWorkflow, /node scripts\/sync-bambuddy-stable\.mjs/);
-  assert.doesNotMatch(stableWorkflow, /node scripts\/sync-bambuddy-release\.mjs/);
-  assert.doesNotMatch(stableWorkflow, /git add[^\n]*my3d-bambuddy\/(?:docker-compose\.yml|umbrel-app\.yml)/);
-  assert.match(stableWorkflow, /git add channels\/bambuddy\/stable\.json/);
+  assert.match(stableWorkflow, /node scripts\/sync-bambuddy-release\.mjs/);
+  assert.match(stableWorkflow, /my3d-bambuddy\/docker-compose\.yml/);
+  assert.match(stableWorkflow, /my3d-bambuddy\/umbrel-app\.yml/);
+  assert.match(stableWorkflow, /git add channels\/bambuddy\/stable\.json my3d-bambuddy\/docker-compose\.yml my3d-bambuddy\/umbrel-app\.yml/);
+  assert.match(stableWorkflow, /cron: '7,37 \* \* \* \*'/);
 });
 
 test('beta automation only publishes beta channel metadata', () => {
