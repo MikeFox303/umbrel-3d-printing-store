@@ -6,7 +6,7 @@
 
 1. В UmbrelOS добавьте URL этого GitHub-репозитория как Community App Store.
 2. Дождитесь обновления каталога и установите нужные приложения обычным способом через Umbrel.
-3. Для Bambuddy сначала установите **Bambuddy**, затем **Bambuddy Manager**. Manager имеет зависимость от `my3d-bambuddy` и управляет уже установленным runtime.
+3. Для обычного Stable достаточно установить **Bambuddy**. **Bambuddy Manager** устанавливайте дополнительно, если нужны Beta-канал, snapshots и rollback.
 
 UmbrelOS периодически обновляет зарегистрированные Community Store, поэтому удалять и повторно добавлять Store после каждой новой версии не нужно.
 
@@ -24,12 +24,13 @@ FoxForge остаётся ранней alpha-версией. Пакет пред
 
 ## Bambuddy: рекомендуемый способ установки и обновления
 
-`my3d-bambuddy` использует официальный upstream `maziggy/bambuddy`. Версия, указанная в Umbrel package, является проверенным **bootstrap runtime** — безопасной исходной точкой, с которой Bambuddy может быть установлен обычным способом.
+`my3d-bambuddy` использует официальный upstream `maziggy/bambuddy`. Stable-релизы проверяются Store CI и после успешной проверки автоматически обновляют одновременно:
 
-После установки **Bambuddy Manager** Stable/Beta обновления Bambuddy больше не требуют переписывать Umbrel package. Store публикует отдельно проверенные channel metadata:
+- Umbrel package `my3d-bambuddy` — поэтому UmbrelOS показывает штатное обновление приложения;
+- `channels/bambuddy/stable.json` — для Bambuddy Manager;
+- immutable GHCR digest в `docker-compose.yml`.
 
-- `channels/bambuddy/stable.json`
-- `channels/bambuddy/beta.json`
+Beta/Daily по-прежнему публикуется только в `channels/bambuddy/beta.json` и устанавливается через Bambuddy Manager.
 
 Перед публикацией нового runtime Store CI:
 
@@ -53,15 +54,19 @@ maziggy/bambuddy release или daily build
           +--------+---------+
                    |
                    v
-        stable.json / beta.json
-                   |
-                   v
-           Bambuddy Manager
-                   |
-          snapshot + switch
-                   |
-                   v
-          официальный Bambuddy
+      stable release        beta/daily
+          |                     |
+          v                     v
+  Umbrel package +        beta.json
+      stable.json              |
+          |                     v
+          v              Bambuddy Manager
+  Umbrel App Update       snapshot + switch
+          |                     |
+          +----------+----------+
+                     |
+                     v
+            официальный Bambuddy
 ```
 
 ### Bambuddy Manager: Quick Start
@@ -78,16 +83,11 @@ Manager проверяет SHA-256, SQLite `PRAGMA integrity_check`, ожида�
 
 > **Важно:** Bambuddy Manager управляет Docker runtime и имеет доступ к Docker socket. Не отключайте Umbrel App Proxy authentication для Manager и не публикуйте его порт напрямую в интернет.
 
-### Bootstrap package и runtime channel — это разные версии
+### Umbrel Stable и Bambuddy Manager
 
-В интерфейсе Umbrel версия приложения `my3d-bambuddy` может отличаться от фактической версии запущенного Bambuddy после переключения через Manager. Это нормально:
+Для Stable версия на плитке Umbrel и pinned runtime синхронизируются автоматически после проверки нового upstream release. UmbrelOS сам решает, когда обновить каталог Community Store; установку обновления пользователь подтверждает обычной кнопкой Update.
 
-```text
-Umbrel package version = bootstrap/package definition
-Bambuddy runtime       = Stable или Beta channel, выбранный Manager
-```
-
-Channel automation намеренно **не изменяет** `my3d-bambuddy/docker-compose.yml` и `umbrel-app.yml`. Это исключает конфликт двух независимых механизмов обновления во время существования Beta rollback point.
+После перехода на Beta через Manager фактический runtime может временно отличаться от Stable-версии, опубликованной в Umbrel. Перед установкой нового Stable через Umbrel рекомендуется сначала вернуться **Beta → Stable** через Manager, чтобы он восстановил Stable snapshot корректно.
 
 Не рекомендуется вручную менять image/command/entrypoint Bambuddy Compose, пока runtime управляется Manager. При неподдерживаемых service overrides Manager откажется от переключения вместо небезопасного угадывания конфигурации.
 
