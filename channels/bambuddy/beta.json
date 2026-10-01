@@ -4,8 +4,8 @@
   "version": "1.2.6b1-daily.20261001",
   "releaseTag": "v1.2.6b1-daily.20261001",
   "image": "ghcr.io/maziggy/bambuddy:daily",
-  "digest": "sha256:88b44473a84cb92e64dbf5a76b562000c110c26cf72686f26103fb86e4412e94",
-  "immutableImage": "ghcr.io/maziggy/bambuddy:daily@sha256:88b44473a84cb92e64dbf5a76b562000c110c26cf72686f26103fb86e4412e94",
+  "digest": "sha256:f6ec10688ee6dfb4eb0e1a1f8baa4f000fb236f7d2a16c0ac7886362e371a355",
+  "immutableImage": "ghcr.io/maziggy/bambuddy:daily@sha256:f6ec10688ee6dfb4eb0e1a1f8baa4f000fb236f7d2a16c0ac7886362e371a355",
   "source": "github-prerelease+ghcr-daily",
   "testedPlatforms": [
     "linux/amd64",
