@@ -2,7 +2,7 @@ manifestVersion: 1.1
 id: my3d-bambuddy
 name: Bambuddy
 category: automation
-version: "1.2.5.6"
+version: "1.2.5.7"
 tagline: Локальное управление принтерами Bambu Lab
 description: >-
   Community App package для официального Bambuddy. Bambuddy — self-hosted
@@ -21,5 +21,5 @@ dependencies: []
 path: ""
 torOnly: false
 releaseNotes: >-
-  Официальный upstream Bambuddy 1.2.5.6, закреплённый по immutable multi-arch digest.
+  Официальный upstream Bambuddy 1.2.5.7, закреплённый по immutable multi-arch digest.
   FilaMan-specific fork code не используется runtime; Spoolman — рекомендуемый inventory backend.
