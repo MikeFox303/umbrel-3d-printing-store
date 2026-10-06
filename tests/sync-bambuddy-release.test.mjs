@@ -14,7 +14,7 @@ function withPackage(run) {
   fs.mkdirSync(appDirectory, { recursive: true });
   fs.writeFileSync(
     path.join(appDirectory, 'docker-compose.yml'),
-    'services:\n  app_proxy:\n    environment:\n      APP_HOST: server\n  server:\n    image: ghcr.io/maziggy/bambuddy:1.2.5.5@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n    cap_add:\n      - NET_BIND_SERVICE\n      - NET_ADMIN\n    post_start:\n      - command: /bin/sh -c \'ip route replace 192.168.0.151/32 via 10.21.0.1\'\n        user: root\n    networks:\n      default:\n        gw_priority: 1\n      bambuddy_lan:\n        ipv4_address: 192.168.0.200\n        gw_priority: 0\nnetworks:\n  default:\n    external: true\n    name: umbrel_main_network\n  bambuddy_lan:\n    external: true\n    name: bambuddy_lan\n',
+    'services:\n  app_proxy:\n    environment:\n      APP_HOST: server\n  server:\n    image: ghcr.io/maziggy/bambuddy:1.2.5.5@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n    cap_add:\n      - NET_BIND_SERVICE\n    networks:\n      default:\n        gw_priority: 1\n      bambuddy_lan:\n        ipv4_address: 192.168.0.200\n        gw_priority: 0\nnetworks:\n  default:\n    external: true\n    name: umbrel_main_network\n  bambuddy_lan:\n    external: true\n    name: bambuddy_lan\n',
   );
   fs.writeFileSync(
     path.join(appDirectory, 'umbrel-app.yml'),
