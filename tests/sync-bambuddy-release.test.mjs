@@ -14,7 +14,7 @@ function withPackage(run) {
   fs.mkdirSync(appDirectory, { recursive: true });
   fs.writeFileSync(
     path.join(appDirectory, 'docker-compose.yml'),
-    'services:\n  server:\n    image: ghcr.io/maziggy/bambuddy:1.2.5.5@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n',
+    'services:\n  app_proxy:\n    environment:\n      APP_HOST: server\n  server:\n    image: ghcr.io/maziggy/bambuddy:1.2.5.5@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n    cap_add:\n      - NET_BIND_SERVICE\n      - NET_ADMIN\n    post_start:\n      - command: /bin/sh -c \'ip route replace 192.168.0.151/32 via 10.21.0.1\'\n        user: root\n    networks:\n      default:\n        gw_priority: 1\n      bambuddy_lan:\n        ipv4_address: 192.168.0.200\n        gw_priority: 0\nnetworks:\n  default:\n    external: true\n    name: umbrel_main_network\n  bambuddy_lan:\n    external: true\n    name: bambuddy_lan\n',
   );
   fs.writeFileSync(
     path.join(appDirectory, 'umbrel-app.yml'),
@@ -43,6 +43,14 @@ test('updates only the official Bambuddy image, version, and release notes', () 
     const compose = fs.readFileSync(path.join(directory, 'my3d-bambuddy/docker-compose.yml'), 'utf8');
     const manifest = fs.readFileSync(path.join(directory, 'my3d-bambuddy/umbrel-app.yml'), 'utf8');
     assert.match(compose, new RegExp(`ghcr.io/maziggy/bambuddy:1\\.2\\.5\\.6@${validDigest}`));
+    assert.doesNotMatch(compose, /network_mode:\s*host/);
+    assert.match(compose, /APP_HOST:\s*server/);
+    assert.match(compose, /bambuddy_lan:/);
+    assert.match(compose, /ipv4_address:\s*192\.168\.0\.200/);
+    assert.match(compose, /NET_ADMIN/);
+    assert.match(compose, /post_start:/);
+    assert.match(compose, /ip route replace 192\.168\.0\.151\/32/);
+
     assert.match(manifest, /^version: "1\.2\.5\.6"$/m);
     assert.match(manifest, /Официальный upstream Bambuddy 1\.2\.5\.6/);
     assert.match(manifest, /Spoolman/);
