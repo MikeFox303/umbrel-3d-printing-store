@@ -12,7 +12,7 @@
 
 Upstream Bambuddy включает X2D в список поддерживаемых принтеров и заявляет управление AMS 2 Pro. Для локального управления в актуальной документации Bambuddy требуется включить на принтере **LAN Only Mode**, затем **Developer Mode**; после этого запишите IP-адрес, Access Code и Serial Number. Обычный LAN Mode без Developer Mode даёт только read-only monitoring.
 
-Этот пакет намеренно использует Docker bridge mode, поэтому автоматическое SSDP-обнаружение может не работать. В Bambuddy добавьте X2D вручную по IP-адресу. Сервер Umbrel должен иметь исходящую LAN-связность с принтером; не нужен и не включён `network_mode: host`.
+Для этого Umbrel-развёртывания Bambuddy использует две Docker-сети вместо `network_mode: host`. Интерфейс приложения остаётся во внутренней `umbrel_main_network`, а Virtual Printer получает отдельный LAN-адрес `192.168.0.200` через внешнюю IPvlan L2 сеть `bambuddy_lan` на Wi-Fi `wlan0`. Связь Bambuddy с реальным X2D `192.168.0.151` направляется через внутренний Umbrel gateway, поэтому исходящий путь не зависит от IPvlan. X2D следует держать на DHCP reservation `192.168.0.151`. Автоматическое SSDP-обнаружение может не работать, поэтому X2D добавляйте вручную по IP.
 
 После добавления проверьте:
 
@@ -41,6 +41,22 @@ FilaMan -- API --> Bambuddy --> Bambu Lab X2D --> AMS 2 Pro
 
 Используйте встроенный backup Bambuddy, если он доступен в вашей версии. Для ручного backup скопируйте `${APP_DATA_DIR}/data`; перед raw filesystem backup SQLite остановите приложение, чтобы получить согласованную копию базы и WAL-файлов. Не запускайте новую версию поверх единственной непроверенной копии данных.
 
-Обновления выполняются Umbrel. Workflow Store проверяет только стабильные upstream release и immutable multi-architecture image. Slicer API sidecar не входит в пакет.
+Обновления выполняются Umbrel. Workflow Store проверяет только стабильные upstream release и immutable multi-architecture image и обновляет только image reference/версию, поэтому LAN/IPvlan-конфигурация пакета не должна перезаписываться при обычных Stable-обновлениях. Slicer API sidecar не входит в пакет.
 
 Перед uninstall экспортируйте нужные данные и сделайте backup. Удаление приложения в Umbrel может предложить удалить его data directory — не подтверждайте это, пока backup не проверен.
+
+
+## Virtual Printer: важное для этой установки
+
+Не возвращайте `network_mode: host` в `docker-compose.yml`: на этом Umbrel он позволяет Virtual Printer занимать системные порты 80/443. Текущая конфигурация специально разделяет:
+
+```text
+Umbrel host           192.168.0.100
+Virtual Printer       192.168.0.200 (IPvlan)
+Bambuddy backend      10.21.0.x (umbrel_main_network)
+Real X2D               192.168.0.151
+```
+
+После обновления проверяйте, что `NetworkMode` не равен `host`, присутствуют обе сети и маршрут к X2D выглядит как `192.168.0.151 via <Umbrel gateway>`.
+
+Эта схема является deployment-specific для данного Community Store: используйте её только вместе с соответствующей внешней Docker-сетью `bambuddy_lan`.
