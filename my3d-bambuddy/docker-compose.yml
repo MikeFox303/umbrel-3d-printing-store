@@ -12,12 +12,6 @@ services:
     init: true
     cap_add:
       - NET_BIND_SERVICE
-      - NET_ADMIN
-    # Keep the X2D on a stable DHCP reservation at 192.168.0.151.
-    # The route uses the container's default Umbrel bridge gateway dynamically.
-    post_start:
-      - command: /bin/sh -c 'GW="$(ip route | grep "^default " | cut -d" " -f3 | head -1)"; test -n "$GW"; ip route replace 192.168.0.151/32 via "$GW"'
-        user: root
     environment:
       TZ: Europe/Kyiv
       PUID: "1000"
