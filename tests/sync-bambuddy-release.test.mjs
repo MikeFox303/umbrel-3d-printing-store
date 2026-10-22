@@ -14,7 +14,29 @@ function withPackage(run) {
   fs.mkdirSync(appDirectory, { recursive: true });
   fs.writeFileSync(
     path.join(appDirectory, 'docker-compose.yml'),
-    'services:\n  app_proxy:\n    environment:\n      APP_HOST: server\n  server:\n    image: ghcr.io/maziggy/bambuddy:1.2.5.5@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n    cap_add:\n      - NET_BIND_SERVICE\n      - NET_ADMIN\n    post_start:\n      - command: /bin/sh -c \'ip route replace 192.168.0.151/32 via 10.21.0.1\'\n        user: root\n    networks:\n      default:\n        gw_priority: 1\n      bambuddy_lan:\n        ipv4_address: 192.168.0.200\n        gw_priority: 0\nnetworks:\n  default:\n    external: true\n    name: umbrel_main_network\n  bambuddy_lan:\n    external: true\n    name: bambuddy_lan\n',
+    `services:
+  app_proxy:
+    environment:
+      APP_HOST: server
+  server:
+    image: ghcr.io/maziggy/bambuddy:1.2.5.5@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    cap_add:
+      - NET_BIND_SERVICE
+    environment:
+      VIRTUAL_PRINTER_ADVERTISE_ADDRESS: 192.168.0.100
+      VIRTUAL_PRINTER_PASV_ADDRESS: 192.168.0.100
+    ports:
+      - "21:21"
+      - "8883:8883"
+    networks:
+      default:
+        ipv4_address: 10.21.0.2
+        gw_priority: 1
+networks:
+  default:
+    external: true
+    name: umbrel_main_network
+`,
   );
   fs.writeFileSync(
     path.join(appDirectory, 'umbrel-app.yml'),
@@ -45,11 +67,13 @@ test('updates only the official Bambuddy image, version, and release notes', () 
     assert.match(compose, new RegExp(`ghcr.io/maziggy/bambuddy:1\\.2\\.5\\.6@${validDigest}`));
     assert.doesNotMatch(compose, /network_mode:\s*host/);
     assert.match(compose, /APP_HOST:\s*server/);
-    assert.match(compose, /bambuddy_lan:/);
-    assert.match(compose, /ipv4_address:\s*192\.168\.0\.200/);
-    assert.match(compose, /NET_ADMIN/);
-    assert.match(compose, /post_start:/);
-    assert.match(compose, /ip route replace 192\.168\.0\.151\/32/);
+    assert.match(compose, /ipv4_address:\s*10\.21\.0\.2/);
+    assert.match(compose, /name:\s*umbrel_main_network/);
+    assert.match(compose, /VIRTUAL_PRINTER_ADVERTISE_ADDRESS:\s*192\.168\.0\.100/);
+    assert.match(compose, /VIRTUAL_PRINTER_PASV_ADDRESS:\s*192\.168\.0\.100/);
+    assert.match(compose, /"8883:8883"/);
+    assert.match(compose, /NET_BIND_SERVICE/);
+    assert.doesNotMatch(compose, /bambuddy_lan|bambuddy_bridge|192\.168\.0\.200|NET_ADMIN|post_start/);
 
     assert.match(manifest, /^version: "1\.2\.5\.6"$/m);
     assert.match(manifest, /Официальный upstream Bambuddy 1\.2\.5\.6/);

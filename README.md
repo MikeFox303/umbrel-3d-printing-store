@@ -176,7 +176,7 @@ Bambu Lab ── Bambuddy ── Spoolman
 
 FoxForge — отдельный bridge-networked Umbrel package на порту `8283`. Текущая explicit-IP модель Bambu/Moonraker не требует host networking; discovery и Virtual Printer остаются отдельной будущей задачей с собственным network/physical validation.
 
-Bambuddy — отдельный Umbrel package на порту `8280`.
+Bambuddy — отдельный bridge-networked Umbrel package на порту `8280`. Backend работает в `umbrel_main_network` на `10.21.0.2`; Virtual Printer публикуется на LAN-IP Umbrel (`192.168.0.100`) портами `21`, `322`, `990`, `3000`, `3002`, `6000`, `8883`, `2024-2026`, `50000-50100`. Порты 80/443 не публикуются, поэтому VP добавляется в slicer вручную.
 
 Bambuddy Manager — companion package на порту `8282`, доступный через Umbrel App Proxy. Он управляет только установленным `my3d-bambuddy` и не передаёт Docker socket самому Bambuddy.
 

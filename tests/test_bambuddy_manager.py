@@ -195,6 +195,50 @@ class ClonePolicyTests(ManagerTestCase):
         self.assertEqual(spec["HostConfig"]["NetworkMode"], "host")
         self.assertEqual(spec["HostConfig"]["CapAdd"], ["NET_BIND_SERVICE"])
 
+    def test_clone_spec_preserves_static_network_ip(self):
+        self.write_compose(
+            extra="    networks:\n"
+            "      default:\n"
+            "        ipv4_address: 10.21.0.2\n"
+        )
+        previous = {
+            "Config": {"Env": [], "Labels": {}},
+            "HostConfig": {"NetworkMode": "umbrel_main_network"},
+        }
+        spec = manager.build_clone_spec(previous)
+        self.assertEqual(
+            spec["NetworkingConfig"],
+            {
+                "EndpointsConfig": {
+                    "umbrel_main_network": {
+                        "IPAMConfig": {"IPv4Address": "10.21.0.2"}
+                    }
+                }
+            },
+        )
+
+    def test_create_clone_passes_static_network_ip(self):
+        networking = {
+            "EndpointsConfig": {
+                "umbrel_main_network": {
+                    "IPAMConfig": {"IPv4Address": "10.21.0.2"}
+                }
+            }
+        }
+        captured = {}
+
+        def fake_docker_request(method, path, body=None, expected=None):
+            captured["body"] = body
+
+        original = manager.docker_request
+        manager.docker_request = fake_docker_request
+        self.addCleanup(setattr, manager, "docker_request", original)
+        manager.create_clone_from_spec(
+            {"NetworkingConfig": networking},
+            pinned("1.2.5.5", "a"),
+        )
+        self.assertEqual(captured["body"]["NetworkingConfig"], networking)
+
     def test_unsupported_compose_command_refuses_switch_recreation(self):
         self.write_compose(extra="    command: [\"custom\"]\n")
         with self.assertRaises(RuntimeError):

@@ -12,7 +12,7 @@
 
 Upstream Bambuddy включает X2D в список поддерживаемых принтеров и заявляет управление AMS 2 Pro. Для локального управления в актуальной документации Bambuddy требуется включить на принтере **LAN Only Mode**, затем **Developer Mode**; после этого запишите IP-адрес, Access Code и Serial Number. Обычный LAN Mode без Developer Mode даёт только read-only monitoring.
 
-Для этого Umbrel-развёртывания Bambuddy использует две Docker-сети вместо `network_mode: host`. Интерфейс приложения остаётся во внутренней `umbrel_main_network`, а Virtual Printer получает отдельный LAN-адрес `192.168.0.200` через внешнюю IPvlan L2 сеть `bambuddy_lan` на Wi-Fi `wlan0`. Связь Bambuddy с реальным X2D `192.168.0.151` направляется через внутренний Umbrel gateway, поэтому исходящий путь не зависит от IPvlan. X2D следует держать на DHCP reservation `192.168.0.151`. Автоматическое SSDP-обнаружение может не работать, поэтому X2D добавляйте вручную по IP.
+Для этого Umbrel-развёртывания Bambuddy использует bridge-сеть `umbrel_main_network`, а не `network_mode: host`. Backend получает стабильный адрес `10.21.0.2`; Virtual Printer слушает этот адрес внутри контейнера, а его порты публикуются на LAN-IP Umbrel `192.168.0.100`: `21`, `322`, `990`, `3000`, `3002`, `6000`, `8883`, `2024-2026`, `50000-50100`. В настройках Virtual Printer укажите `bind_ip=10.21.0.2` и `remote_interface_ip=192.168.0.100`; Bambuddy использует `VIRTUAL_PRINTER_ADVERTISE_ADDRESS=192.168.0.100` и `VIRTUAL_PRINTER_PASV_ADDRESS=192.168.0.100`. Реальный X2D `192.168.0.151` доступен через стандартный gateway `10.21.0.1`, поэтому отдельный static route не нужен. X2D следует держать на DHCP reservation `192.168.0.151`. Автоматическое SSDP-обнаружение может не работать, поэтому X2D добавляйте вручную по IP.
 
 После добавления проверьте:
 
@@ -35,28 +35,31 @@ FilaMan -- API --> Bambuddy --> Bambu Lab X2D --> AMS 2 Pro
 
 Интерфейс Bambuddy responsive; upstream также заявляет PWA. На iPhone откройте Bambuddy в Safari, нажмите **Share** → **Add to Home Screen** и используйте созданную иконку.
 
-Для удалённого доступа используйте Tailscale к Umbrel или домашней сети. Не открывайте Bambuddy напрямую в Internet через port forwarding, DMZ или публичный reverse proxy без отдельной модели защиты. Virtual Printer / Proxy Mode и его дополнительные порты не включены в этот пакет по умолчанию.
+Для удалённого доступа используйте Tailscale к Umbrel или домашней сети. Не открывайте Bambuddy напрямую в Internet через port forwarding, DMZ или публичный reverse proxy без отдельной модели защиты. Virtual Printer / Proxy Mode включён: его порты публикуются на `192.168.0.100`, но 80/443 остаются за Umbrel. В slicer добавляйте VP вручную по `192.168.0.100`; для MQTT/FTPS используйте порты 8883/990. Не открывайте эти порты в Internet.
 
 ## Backup, update и uninstall
 
 Используйте встроенный backup Bambuddy, если он доступен в вашей версии. Для ручного backup скопируйте `${APP_DATA_DIR}/data`; перед raw filesystem backup SQLite остановите приложение, чтобы получить согласованную копию базы и WAL-файлов. Не запускайте новую версию поверх единственной непроверенной копии данных.
 
-Обновления выполняются Umbrel. Workflow Store проверяет только стабильные upstream release и immutable multi-architecture image и обновляет только image reference/версию, поэтому LAN/IPvlan-конфигурация пакета не должна перезаписываться при обычных Stable-обновлениях. Slicer API sidecar не входит в пакет.
+Обновления выполняются Umbrel. Workflow Store проверяет только стабильные upstream release и immutable multi-architecture image и обновляет только image reference/версию, поэтому bridge/port-конфигурация пакета не должна перезаписываться при обычных Stable-обновлениях. Slicer API sidecar не входит в пакет: Virtual Printer работает внутри основного контейнера. Bambuddy Manager 0.2.4+ сохраняет статический IP контейнера при переключении Stable/Beta и rollback; при использовании более старого Manager сначала обновите его.
 
 Перед uninstall экспортируйте нужные данные и сделайте backup. Удаление приложения в Umbrel может предложить удалить его data directory — не подтверждайте это, пока backup не проверен.
 
 
 ## Virtual Printer: важное для этой установки
 
-Не возвращайте `network_mode: host` в `docker-compose.yml`: на этом Umbrel он позволяет Virtual Printer занимать системные порты 80/443. Текущая конфигурация специально разделяет:
+Не возвращайте `network_mode: host` в `docker-compose.yml`: на этом Umbrel он позволяет Virtual Printer занимать системные порты 80/443. Текущая конфигурация:
 
 ```text
-Umbrel host           192.168.0.100
-Virtual Printer       192.168.0.200 (IPvlan)
-Bambuddy backend      10.21.0.x (umbrel_main_network)
-Real X2D               192.168.0.151
+Umbrel host           192.168.0.100  (published VP ports)
+Bambuddy backend      10.21.0.2      (umbrel_main_network)
+Virtual Printer bind  10.21.0.2
+Advertise/PASV        192.168.0.100
+Real X2D              192.168.0.151
 ```
 
-После обновления проверяйте, что `NetworkMode` не равен `host`, присутствуют обе сети и маршрут к X2D выглядит как `192.168.0.151 via <Umbrel gateway>`.
+Порты VP: `21`, `322`, `990`, `3000`, `3002`, `6000`, `8883`, `2024-2026`, `50000-50100`. Порты 80/443 не публикуются, поэтому добавляйте VP в Bambu Studio вручную по `192.168.0.100`. После смены advertise-адреса может потребоваться заново импортировать `bbl_ca.crt` в slicer.
 
-Эта схема является deployment-specific для данного Community Store: используйте её только вместе с соответствующей внешней Docker-сетью `bambuddy_lan`.
+После обновления проверяйте `NetworkMode=umbrel_main_network`, `bind_ip=10.21.0.2`, опубликованные порты и `VIRTUAL_PRINTER_*` с адресом `192.168.0.100`. Если контейнер получит другой IP, обновите `bind_ip` Virtual Printer через UI или API.
+
+Эта схема deployment-specific: статический `10.21.0.2` выбран для данной установки, как ранее `192.168.0.151` для X2D.

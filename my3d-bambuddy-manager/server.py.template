@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-MANAGER_VERSION = "0.2.0"
+MANAGER_VERSION = "0.2.4"
 PORT = int(os.environ.get("PORT", "8787"))
 DOCKER_SOCKET = os.environ.get("DOCKER_SOCKET", "/var/run/docker.sock")
 APP_DATA_ROOT = Path(os.environ.get("UMBREL_APP_DATA_ROOT", "/umbrel-app-data"))
@@ -205,6 +205,16 @@ def _env_map(items):
     return values
 
 
+def compose_static_ip():
+    text = TARGET_COMPOSE.read_text(encoding="utf-8")
+    match = re.search(
+        r"^\s+ipv4_address:\s*(\d{1,3}(?:\.\d{1,3}){3})\s*$",
+        text,
+        re.MULTILINE,
+    )
+    return match.group(1) if match else None
+
+
 def build_clone_spec(previous):
     validate_supported_compose()
     config = previous.get("Config") or {}
@@ -246,11 +256,20 @@ def build_clone_spec(previous):
         for key in compose_environment_keys()
         if key in all_env
     ]
-    return {
+    network_mode = host.get("NetworkMode")
+    networking_config = {}
+    static_ip = compose_static_ip()
+    if static_ip and network_mode and network_mode not in ("host", "bridge", "default", "none"):
+        networking_config[network_mode] = {"IPAMConfig": {"IPv4Address": static_ip}}
+
+    spec = {
         "Env": env,
         "Labels": config.get("Labels") or {},
         "HostConfig": host_config,
     }
+    if networking_config:
+        spec["NetworkingConfig"] = {"EndpointsConfig": networking_config}
+    return spec
 
 
 def create_clone_from_spec(spec, image):
@@ -262,6 +281,8 @@ def create_clone_from_spec(spec, image):
         "Labels": spec.get("Labels") or {},
         "HostConfig": spec.get("HostConfig") or {},
     }
+    if spec.get("NetworkingConfig"):
+        body["NetworkingConfig"] = spec["NetworkingConfig"]
     docker_request(
         "POST",
         f"/containers/create?name={urllib.parse.quote(CONTAINER_NAME, safe='')}",
