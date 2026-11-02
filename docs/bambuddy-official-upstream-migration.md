@@ -4,7 +4,7 @@ Date: 2026-09-03
 
 Status: **release candidate only — keep PR draft until real X2D + Virtual Printer + Spoolman accounting acceptance passes**.
 
-> **Superseded networking note (2026-10-22):** The host-network requirement below is historical. The package now uses `umbrel_main_network` with a static backend IP (`10.21.0.2`), published Virtual Printer ports, and `VIRTUAL_PRINTER_ADVERTISE_ADDRESS` / `VIRTUAL_PRINTER_PASV_ADDRESS=192.168.0.100`. See `my3d-bambuddy/README.md` for the current configuration.
+> **Superseded networking note (2026-11-02):** The host-network requirement below is historical. The package now uses `umbrel_main_network` with a static backend IP (`10.21.0.200`), published Virtual Printer ports, and `VIRTUAL_PRINTER_ADVERTISE_ADDRESS` / `VIRTUAL_PRINTER_PASV_ADDRESS=192.168.0.100`. See `my3d-bambuddy/README.md` for the current configuration.
 
 ## Goal
 
