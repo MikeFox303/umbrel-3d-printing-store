@@ -30,7 +30,7 @@ function withPackage(run) {
       - "8883:8883"
     networks:
       default:
-        ipv4_address: 10.21.0.2
+        ipv4_address: 10.21.0.200
         gw_priority: 1
 networks:
   default:

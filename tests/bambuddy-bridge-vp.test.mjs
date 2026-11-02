@@ -25,7 +25,7 @@ test('Bambuddy uses bridge networking with published Virtual Printer ports', () 
   assert.doesNotMatch(compose, /NET_ADMIN/);
 
   assert.match(compose, /^\s*APP_HOST:\s*server\s*$/m);
-  assert.match(compose, /^\s*ipv4_address:\s*10\.21\.0\.2\s*$/m);
+  assert.match(compose, /^\s*ipv4_address:\s*10\.21\.0\.200\s*$/m);
   assert.match(compose, /^\s*name:\s*umbrel_main_network\s*$/m);
   assert.match(compose, /^\s*VIRTUAL_PRINTER_ADVERTISE_ADDRESS:\s*192\.168\.0\.100\s*$/m);
   assert.match(compose, /^\s*VIRTUAL_PRINTER_PASV_ADDRESS:\s*192\.168\.0\.100\s*$/m);

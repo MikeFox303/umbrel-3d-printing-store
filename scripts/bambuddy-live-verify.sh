@@ -8,14 +8,14 @@ SERVER='my3d-bambuddy_server_1'
 X2D_IP="${X2D_IP:-192.168.0.151}"
 HOST_IP="${HOST_IP:-192.168.0.100}"
 APP_PORT="${APP_PORT:-8280}"
-BIND_IP="${BIND_IP:-10.21.0.2}"
+BIND_IP="${BIND_IP:-10.21.0.200}"
 
 fail() {
   echo "ERROR: $*" >&2
   exit 1
 }
 
-for cmd in docker python3 curl grep sed; do
+for cmd in docker python3 curl grep sed ss; do
   command -v "$cmd" >/dev/null 2>&1 || fail "required command not found: $cmd"
 done
 
@@ -30,7 +30,19 @@ IMAGE="$(docker inspect "$SERVER" --format '{{.Config.Image}}')"
 NETWORK="$(docker inspect "$SERVER" --format '{{.HostConfig.NetworkMode}}')"
 RUNNING="$(docker inspect "$SERVER" --format '{{.State.Running}}')"
 CONTAINER_IP="$(docker inspect "$SERVER" --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')"
-COMPOSE_IMAGE="$(sed -n '/^  server:/,/^  [^ ]/p' "$COMPOSE" | sed -n 's/^    image:[[:space:]]*//p' | head -1)"
+COMPOSE_IMAGE="$(awk '
+  /^  server:[[:space:]]*$/ { in_server = 1; next }
+  in_server && /^  [^ ]/ { exit }
+  in_server && /^    image:[[:space:]]*/ {
+    sub(/^    image:[[:space:]]*/, "")
+    if ($0 == ">-" || $0 == ">") {
+      getline
+      sub(/^[[:space:]]+/, "")
+    }
+    print
+    exit
+  }
+' "$COMPOSE")"
 
 echo "Image:        $IMAGE"
 echo "Network:      $NETWORK"
@@ -54,7 +66,7 @@ grep -Fq 'NET_BIND_SERVICE' "$COMPOSE" || fail 'NET_BIND_SERVICE capability miss
 ! grep -Eq 'bambuddy_lan|bambuddy_bridge|192\.168\.0\.200|NET_ADMIN|post_start:|^[[:space:]]*entrypoint:' "$COMPOSE" || fail 'obsolete host/ipvlan compose settings are still present'
 
 for port in 21 322 990 3000 3002 6000 8883 2024-2026 50000-50100; do
-  grep -Fq "\"$port:$port\"" "$COMPOSE" || fail "Virtual Printer port $port is not published"
+  grep -Fq "$port:$port" "$COMPOSE" || fail "Virtual Printer port $port is not published"
 done
 
 echo 'Virtual Printer compose invariants: PASS'
@@ -77,9 +89,13 @@ echo '=========================================='
 echo ' PUBLISHED VIRTUAL PRINTER PORTS'
 echo '=========================================='
 
+# Check host listeners with ss instead of connecting to every port: connecting
+# to an optional VP port would trigger a real upstream proxy attempt and create
+# misleading "connection refused" errors for printer ports that are dormant.
 python3 - <<'PY'
-import socket
+import subprocess
 
+listeners = subprocess.check_output(['ss', '-ltn'], text=True)
 failed = False
 for port, name in [
     (21, 'FTP control'),
@@ -92,16 +108,9 @@ for port, name in [
     (2024, 'Camera/aux'),
     (50000, 'FTP data'),
 ]:
-    sock = socket.socket()
-    sock.settimeout(5)
-    try:
-        sock.connect(('127.0.0.1', port))
-        print(f'127.0.0.1:{port:<5} {name:<18} OPEN')
-    except Exception as exc:
-        failed = True
-        print(f'127.0.0.1:{port:<5} {name:<18} FAIL ({type(exc).__name__}: {exc})')
-    finally:
-        sock.close()
+    open_port = any(f':{port} ' in line for line in listeners.splitlines())
+    print(f'host:{port:<5} {name:<18} {"LISTEN" if open_port else "FAIL"}')
+    failed = failed or not open_port
 if failed:
     raise SystemExit(1)
 PY

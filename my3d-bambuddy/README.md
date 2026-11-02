@@ -12,7 +12,7 @@
 
 Upstream Bambuddy включает X2D в список поддерживаемых принтеров и заявляет управление AMS 2 Pro. Для локального управления в актуальной документации Bambuddy требуется включить на принтере **LAN Only Mode**, затем **Developer Mode**; после этого запишите IP-адрес, Access Code и Serial Number. Обычный LAN Mode без Developer Mode даёт только read-only monitoring.
 
-Для этого Umbrel-развёртывания Bambuddy использует bridge-сеть `umbrel_main_network`, а не `network_mode: host`. Backend получает стабильный адрес `10.21.0.2`; Virtual Printer слушает этот адрес внутри контейнера, а его порты публикуются на LAN-IP Umbrel `192.168.0.100`: `21`, `322`, `990`, `3000`, `3002`, `6000`, `8883`, `2024-2026`, `50000-50100`. В настройках Virtual Printer укажите `bind_ip=10.21.0.2` и `remote_interface_ip=192.168.0.100`; Bambuddy использует `VIRTUAL_PRINTER_ADVERTISE_ADDRESS=192.168.0.100` и `VIRTUAL_PRINTER_PASV_ADDRESS=192.168.0.100`. Реальный X2D `192.168.0.151` доступен через стандартный gateway `10.21.0.1`, поэтому отдельный static route не нужен. X2D следует держать на DHCP reservation `192.168.0.151`. Автоматическое SSDP-обнаружение может не работать, поэтому X2D добавляйте вручную по IP.
+Для этого Umbrel-развёртывания Bambuddy использует bridge-сеть `umbrel_main_network`, а не `network_mode: host`. Backend получает стабильный адрес `10.21.0.200`; Virtual Printer слушает этот адрес внутри контейнера, а его порты публикуются на LAN-IP Umbrel `192.168.0.100`: `21`, `322`, `990`, `3000`, `3002`, `6000`, `8883`, `2024-2026`, `50000-50100`. В настройках Virtual Printer укажите `bind_ip=10.21.0.200` и `remote_interface_ip=192.168.0.100`; Bambuddy использует `VIRTUAL_PRINTER_ADVERTISE_ADDRESS=192.168.0.100` и `VIRTUAL_PRINTER_PASV_ADDRESS=192.168.0.100`. Реальный X2D `192.168.0.151` доступен через стандартный gateway `10.21.0.1`, поэтому отдельный static route не нужен. X2D следует держать на DHCP reservation `192.168.0.151`. Автоматическое SSDP-обнаружение может не работать, поэтому X2D добавляйте вручную по IP.
 
 После добавления проверьте:
 
@@ -52,14 +52,14 @@ FilaMan -- API --> Bambuddy --> Bambu Lab X2D --> AMS 2 Pro
 
 ```text
 Umbrel host           192.168.0.100  (published VP ports)
-Bambuddy backend      10.21.0.2      (umbrel_main_network)
-Virtual Printer bind  10.21.0.2
+Bambuddy backend      10.21.0.200      (umbrel_main_network)
+Virtual Printer bind  10.21.0.200
 Advertise/PASV        192.168.0.100
 Real X2D              192.168.0.151
 ```
 
 Порты VP: `21`, `322`, `990`, `3000`, `3002`, `6000`, `8883`, `2024-2026`, `50000-50100`. Порты 80/443 не публикуются, поэтому добавляйте VP в Bambu Studio вручную по `192.168.0.100`. После смены advertise-адреса может потребоваться заново импортировать `bbl_ca.crt` в slicer.
 
-После обновления проверяйте `NetworkMode=umbrel_main_network`, `bind_ip=10.21.0.2`, опубликованные порты и `VIRTUAL_PRINTER_*` с адресом `192.168.0.100`. Если контейнер получит другой IP, обновите `bind_ip` Virtual Printer через UI или API.
+После обновления проверяйте `NetworkMode=umbrel_main_network`, `bind_ip=10.21.0.200`, опубликованные порты и `VIRTUAL_PRINTER_*` с адресом `192.168.0.100`. Если контейнер получит другой IP, обновите `bind_ip` Virtual Printer через UI или API.
 
-Эта схема deployment-specific: статический `10.21.0.2` выбран для данной установки, как ранее `192.168.0.151` для X2D.
+Эта схема deployment-specific: статический `10.21.0.200` выбран для данной установки вне низкого динамического диапазона Umbrel, чтобы другой контейнер не занял адрес, пока Bambuddy остановлен.
