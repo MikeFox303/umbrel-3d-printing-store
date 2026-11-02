@@ -199,7 +199,7 @@ class ClonePolicyTests(ManagerTestCase):
         self.write_compose(
             extra="    networks:\n"
             "      default:\n"
-            "        ipv4_address: 10.21.0.200\n"
+            "        ipv4_address: 10.21.250.200\n"
         )
         previous = {
             "Config": {"Env": [], "Labels": {}},
@@ -211,7 +211,7 @@ class ClonePolicyTests(ManagerTestCase):
             {
                 "EndpointsConfig": {
                     "umbrel_main_network": {
-                        "IPAMConfig": {"IPv4Address": "10.21.0.200"}
+                        "IPAMConfig": {"IPv4Address": "10.21.250.200"}
                     }
                 }
             },
@@ -221,7 +221,7 @@ class ClonePolicyTests(ManagerTestCase):
         networking = {
             "EndpointsConfig": {
                 "umbrel_main_network": {
-                    "IPAMConfig": {"IPv4Address": "10.21.0.200"}
+                    "IPAMConfig": {"IPv4Address": "10.21.250.200"}
                 }
             }
         }

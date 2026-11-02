@@ -35,9 +35,10 @@ services:
       - "50000-50100:50000-50100"
     networks:
       default:
-        # Stay outside the low dynamic range used by other Umbrel apps, so a
-        # stopped Bambuddy container cannot lose this address to another app.
-        ipv4_address: 10.21.0.200
+        # Stay in the top of the Umbrel /16, far outside the 10.21.0.0/24
+        # block Docker allocates dynamically. A stopped Bambuddy container
+        # must never lose this address to another app.
+        ipv4_address: 10.21.250.200
         gw_priority: 1
 
 networks:

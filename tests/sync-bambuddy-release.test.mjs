@@ -30,7 +30,7 @@ function withPackage(run) {
       - "8883:8883"
     networks:
       default:
-        ipv4_address: 10.21.0.200
+        ipv4_address: 10.21.250.200
         gw_priority: 1
 networks:
   default:
@@ -60,15 +60,24 @@ function runSync(directory, ...arguments_) {
 
 test('updates only the official Bambuddy image, version, and release notes', () => {
   withPackage((directory) => {
+    const composePath = path.join(directory, 'my3d-bambuddy/docker-compose.yml');
+    const beforeCompose = fs.readFileSync(composePath, 'utf8');
+    const networkBlock = (text) => text.slice(text.indexOf('\nnetworks:'));
+
     runSync(directory, '1.2.5.6', validDigest);
 
-    const compose = fs.readFileSync(path.join(directory, 'my3d-bambuddy/docker-compose.yml'), 'utf8');
+    const compose = fs.readFileSync(composePath, 'utf8');
     const manifest = fs.readFileSync(path.join(directory, 'my3d-bambuddy/umbrel-app.yml'), 'utf8');
     assert.match(compose, new RegExp(`ghcr.io/maziggy/bambuddy:1\\.2\\.5\\.6@${validDigest}`));
     assert.doesNotMatch(compose, /network_mode:\s*host/);
     assert.match(compose, /APP_HOST:\s*server/);
-    assert.match(compose, /ipv4_address:\s*10\.21\.0\.2/);
+    assert.match(compose, /ipv4_address:\s*10\.21\.250\.200\b/);
     assert.match(compose, /name:\s*umbrel_main_network/);
+    assert.equal(
+      networkBlock(compose),
+      networkBlock(beforeCompose),
+      'release sync must not rewrite the static network configuration',
+    );
     assert.match(compose, /VIRTUAL_PRINTER_ADVERTISE_ADDRESS:\s*192\.168\.0\.100/);
     assert.match(compose, /VIRTUAL_PRINTER_PASV_ADDRESS:\s*192\.168\.0\.100/);
     assert.match(compose, /"8883:8883"/);
