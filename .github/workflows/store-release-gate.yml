@@ -45,8 +45,24 @@ jobs:
           grep -Eq '^    image: python:3\.13\.15-alpine3\.24@sha256:[0-9a-f]{64}$' my3d-bambuddy-manager/docker-compose.yml
           ! grep -Eq '^[[:space:]]*network_mode:[[:space:]]*host([[:space:]]|$)' my3d-bambuddy/docker-compose.yml
           grep -Eq '^[[:space:]]*APP_HOST:[[:space:]]*server([[:space:]]|$)' my3d-bambuddy/docker-compose.yml
-          grep -Fq 'ipv4_address: 10.21.0.200' my3d-bambuddy/docker-compose.yml
+          grep -Fq 'ipv4_address: 10.21.250.200' my3d-bambuddy/docker-compose.yml
           grep -Fq 'name: umbrel_main_network' my3d-bambuddy/docker-compose.yml
+          python3 - <<'PY'
+          import ipaddress
+          import pathlib
+          import re
+
+          compose = pathlib.Path('my3d-bambuddy/docker-compose.yml').read_text()
+          match = re.search(r'^\s+ipv4_address:\s*(\S+)\s*$', compose, re.MULTILINE)
+          assert match, 'Bambuddy static ipv4_address is missing'
+          address = ipaddress.ip_address(match.group(1))
+          assert address in ipaddress.ip_network('10.21.0.0/16'), address
+          # Docker allocates umbrel_main_network addresses from the bottom of
+          # the /16. A static address in 10.21.0.0/24 can be reassigned to
+          # another app while Bambuddy is stopped.
+          assert address not in ipaddress.ip_network('10.21.0.0/24'), address
+          assert int(str(address).split('.')[2]) >= 200, address
+          PY
           grep -Fq 'VIRTUAL_PRINTER_ADVERTISE_ADDRESS: 192.168.0.100' my3d-bambuddy/docker-compose.yml
           grep -Fq 'VIRTUAL_PRINTER_PASV_ADDRESS: 192.168.0.100' my3d-bambuddy/docker-compose.yml
           grep -Eq '^[[:space:]]*-[[:space:]]*NET_BIND_SERVICE([[:space:]]|$)' my3d-bambuddy/docker-compose.yml

@@ -8,11 +8,23 @@ SERVER='my3d-bambuddy_server_1'
 X2D_IP="${X2D_IP:-192.168.0.151}"
 HOST_IP="${HOST_IP:-192.168.0.100}"
 APP_PORT="${APP_PORT:-8280}"
-BIND_IP="${BIND_IP:-10.21.0.200}"
+BIND_IP="${BIND_IP:-10.21.250.200}"
 
 fail() {
   echo "ERROR: $*" >&2
   exit 1
+}
+
+wait_http() {
+  local url="$1"
+  local attempt
+  for attempt in $(seq 1 30); do
+    if curl -fsS "$url" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
 }
 
 for cmd in docker python3 curl grep sed ss; do
@@ -65,20 +77,42 @@ grep -Fq "VIRTUAL_PRINTER_PASV_ADDRESS: $HOST_IP" "$COMPOSE" || fail 'Virtual Pr
 grep -Fq 'NET_BIND_SERVICE' "$COMPOSE" || fail 'NET_BIND_SERVICE capability missing'
 ! grep -Eq 'bambuddy_lan|bambuddy_bridge|192\.168\.0\.200|NET_ADMIN|post_start:|^[[:space:]]*entrypoint:' "$COMPOSE" || fail 'obsolete host/ipvlan compose settings are still present'
 
+STATIC_IP="$(sed -n 's/^[[:space:]]*ipv4_address:[[:space:]]*//p' "$COMPOSE" | head -1)"
+[[ "$STATIC_IP" == "$BIND_IP" ]] || fail "compose static IP is $STATIC_IP, expected $BIND_IP"
+python3 - "$STATIC_IP" <<'PY'
+import ipaddress
+import sys
+
+address = ipaddress.ip_address(sys.argv[1])
+subnet = ipaddress.ip_network('10.21.0.0/16')
+dynamic_block = ipaddress.ip_network('10.21.0.0/24')
+if address not in subnet:
+    raise SystemExit(f'static IP {address} is outside {subnet}')
+if address in dynamic_block:
+    raise SystemExit(
+        f'static IP {address} is inside {dynamic_block}, where Docker allocates '
+        'other app addresses; it can be stolen while Bambuddy is stopped'
+    )
+PY
+OTHER_OWNER="$(docker network inspect umbrel_main_network --format '{{range $id, $c := .Containers}}{{$c.Name}} {{$c.IPv4Address}}{{"\n"}}{{end}}' \
+  | awk -v server="$SERVER" -v ip="$BIND_IP" '$1 != server && index($2, ip "/") == 1 { print $1 " " $2 }')"
+[[ -z "$OTHER_OWNER" ]] || fail "static IP $BIND_IP is also assigned to another container: $OTHER_OWNER"
+
 for port in 21 322 990 3000 3002 6000 8883 2024-2026 50000-50100; do
   grep -Fq "$port:$port" "$COMPOSE" || fail "Virtual Printer port $port is not published"
 done
 
-echo 'Virtual Printer compose invariants: PASS'
+echo 'Virtual Printer compose and static-IP invariants: PASS'
 
 echo
 echo '=========================================='
 echo ' HEALTH / UMBREL PROXY'
 echo '=========================================='
 
+wait_http "http://$CONTAINER_IP:8000/health" || fail 'Bambuddy health endpoint did not become ready'
+wait_http "http://127.0.0.1:$APP_PORT/health" || fail 'Umbrel app gateway did not become ready'
 curl -fsS "http://$CONTAINER_IP:8000/health"
 printf '\n'
-curl -fsS "http://127.0.0.1:$APP_PORT/health" >/dev/null
 
 echo 'Container health: PASS'
 echo 'Umbrel app gateway health: PASS'
