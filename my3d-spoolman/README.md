@@ -6,8 +6,8 @@ Community App package для запуска [Spoolman](https://github.com/Donkie
 
 - App ID: `my3d-spoolman`
 - Web UI: `http://<UMBrel-IP>:7912`
-- Upstream: `v0.26.1`
-- Image: `ghcr.io/donkie/spoolman:0.26.1`
+- Upstream: `v0.27.1`
+- Image: `ghcr.io/donkie/spoolman:0.27.1`
 - Persistent data: `${APP_DATA_DIR}/data`
 - Container data path: `/home/app/.local/share/spoolman`
 - Database: SQLite по умолчанию

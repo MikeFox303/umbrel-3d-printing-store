@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   server:
-    image: ghcr.io/donkie/spoolman:0.26.1@sha256:cf9b41e17b93ce7d4ca584d9809142f8918fd290f2cd7d3b8b12ff76c75482f0
+    image: ghcr.io/donkie/spoolman:0.27.1@sha256:1ebb4f6a62c2e72a07f18b07ebfdbd96322f5bc2eb72570af3088f68d7c393b1
     restart: on-failure
     init: true
     stop_grace_period: 30s
