@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "channel": "beta",
-  "version": "1.3.2b1-daily.20261114",
-  "releaseTag": "v1.3.2b1-daily.20261114",
+  "version": "1.3.2b1-daily.20261115",
+  "releaseTag": "v1.3.2b1-daily.20261115",
   "image": "ghcr.io/maziggy/bambuddy:daily",
-  "digest": "sha256:e6230bdd3d9ae086d6821418422e0632978552c329acb8302cdc00a6bc51f59e",
-  "immutableImage": "ghcr.io/maziggy/bambuddy:daily@sha256:e6230bdd3d9ae086d6821418422e0632978552c329acb8302cdc00a6bc51f59e",
+  "digest": "sha256:5b600ec3ea1e2b8b1d4a9178e1e10bf45126ee1a00229b7915b0685da03f0b83",
+  "immutableImage": "ghcr.io/maziggy/bambuddy:daily@sha256:5b600ec3ea1e2b8b1d4a9178e1e10bf45126ee1a00229b7915b0685da03f0b83",
   "source": "github-prerelease+ghcr-daily",
   "testedPlatforms": [
     "linux/amd64",
